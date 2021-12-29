@@ -20,7 +20,7 @@ class Campaign extends Model
         return $this->belongsTo(TrackerAuth::class);
     }
 
-    public function campaignTags() : BelongsToMany
+    public function tags() : BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'campaign_tags', 'campaign_id', 'tag_id');
     }
