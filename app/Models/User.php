@@ -40,8 +40,29 @@ class User extends Authenticatable
     ];
 
 
-    public function roles(){
-        return $this->hasMany(Role::class, 'role_user', 'id', 'user_id');
+    public function roles() : BelongsToMany
+    {
+        return $this->belongsToMany(Role::class);
+    }
+
+    public function trackers() : BelongsToMany
+    {
+        return $this->belongsToMany(Tracker::class, 'tracker_users', 'user_id', 'tracker_id');
+    }
+
+    public function trackerAuths()
+    {
+        return $this->hasMany(TrackerAuth::class);
+    }
+
+    public function campaignGroups() : BelongsToMany
+    {
+        return $this->belongsToMany(CampaignGroup::class, 'campaign_group_users', 'user_id', 'campaign_group_id');
+    }
+
+    public function tags()
+    {
+        return $this->hasMany(Tag::class);
     }
 
 }

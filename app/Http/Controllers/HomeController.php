@@ -23,6 +23,7 @@ class HomeController extends Controller
      */
     public function index()
     {
+        dd(auth()->user()->trackers);
         return view('home');
     }
 }

@@ -8,4 +8,5 @@ use Illuminate\Database\Eloquent\Model;
 class CampaignTag extends Model
 {
     use HasFactory;
+    
 }
