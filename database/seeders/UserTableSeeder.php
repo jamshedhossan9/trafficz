@@ -17,7 +17,7 @@ class UserTableSeeder extends Seeder
      */
     public function run()
     {
-        DB::table('users')->truncate();
+        // DB::table('users')->truncate();
 
         $data = [
             ['id' => 1, 'name' => 'Super Admin', 'email' => 'superadmin@example.com', 'password' => Hash::make('123456'), 'status' => 1, 'created_at' => Carbon::now()],
