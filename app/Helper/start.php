@@ -257,7 +257,7 @@ function createVoluumSession($keyId, $key, $withLoginInfo = false)
 
 function getVoluumReport($auth, $query, $limit = 1000, $offset = 0)
 {
-    $token = createVoluumSession($auth['access_key_id'], $auth['access_key'], true);
+    $token = createVoluumSession($auth['access_key_id'], $auth['access_key'], false);
     if($token){
         $ch = curl_init();
 
