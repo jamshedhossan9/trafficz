@@ -65,7 +65,7 @@ var ajax = function(options, form){
     };
     options = $.extend(defaults, options);
     if(options.blockUi){
-        blockUi();
+        setTimeout(function(){blockUi();}, 50);
     }
     $.ajax(options);
 };
@@ -84,6 +84,10 @@ var select2Tag = function(el){
             return "No Record Found";
         },
     });
+};
+
+var selectpicker = function(el){
+    el.selectpicker();
 };
 
 var blockUi = function(){
@@ -131,12 +135,8 @@ $(function(){
         ajax(options, el);
     });
 
-    $('.default-select2').select2({
-        formatNoMatches: function () {
-            return "No Record Found";
-        },
-    });
     select2($('.default-select2'));
     select2Tag($('.default-select2-tag'));
+    selectpicker($('.default-selectpicker'));
 
 });

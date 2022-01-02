@@ -13,5 +13,12 @@ var listUrlId = function(url){
 }
 
 var listUrls = {
+    @if(isAdmin())
     adminAddedUsersToGroup: listUrlId('{{ route('admin.addedUsersToGroup',':id') }}'),
+    adminDeleteCampaignFromGroup: listUrlId('{{ route('admin.deleteCampaignFromGroup',':id') }}'),
+    @endif
+    @if(isUser())
+    getAllCampaignGroupStats: '{{ route('user.getAllCampaignGroupStats') }}',
+    getCampaignHourlyStats: '{{ route('user.getCampaignHourlyStats') }}',
+    @endif
 };

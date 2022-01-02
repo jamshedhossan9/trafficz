@@ -24,4 +24,9 @@ class Campaign extends Model
     {
         return $this->belongsToMany(Tag::class, 'campaign_tags', 'campaign_id', 'tag_id');
     }
+
+    public function getTagIdsAttribute()
+    {
+        return $this->tags()->pluck('tag_id');
+    }
 }

@@ -9,6 +9,9 @@ use App\Models\CampaignGroup;
 use App\Models\CampaignGroupUser;
 use App\Models\TrackerAuth;
 use App\Models\User;
+use App\Models\Tag;
+use App\Models\CampaignTag;
+use Illuminate\Support\Str;
 
 class CampaignController extends Controller
 {
@@ -19,9 +22,10 @@ class CampaignController extends Controller
      */
     public function index()
     {
-        $this->campaignGroups = CampaignGroup::where('user_id', $this->user->id)->with(['users', 'campaigns.trackerAuth.trackerUser.tracker'])->get();
+        $this->campaignGroups = CampaignGroup::where('user_id', $this->user->id)->with(['users', 'campaigns.trackerAuth.trackerUser.tracker'])->orderBy('id', 'desc')->get();
         // dd($this->campaignGroups);
         $this->trackerAuths = TrackerAuth::where('user_id', $this->user->id)->with(['trackerUser', 'trackerUser.tracker'])->get();
+        $this->campaignTags = Tag::where('user_id', $this->user->id)->orderBy('name', 'asc')->get();
         return view('admin.campaigns', $this->data);
     }
 
@@ -114,6 +118,18 @@ class CampaignController extends Controller
         //
     }
 
+    public function deleteCampaign($id)
+    {
+        $output = $this->ajaxRes(true);
+        $id = intval($id);
+        Campaign::destroy($id);
+        $output->status = true;
+        $output->msg->text = 'Deleted Campaign';
+        $output->msg->title = 'Successful';
+        $output->msg->type = 'success';
+        return response()->json($output);
+    }
+
     public function addCampaign(Request $request)
     {
         $request->validate([
@@ -135,12 +151,46 @@ class CampaignController extends Controller
         $trackerAuthId = intval($trackerAuthId);
         $checkEsxist = Campaign::where('campaign_group_id', $campaignGroupId)->where('tracker_auth_id', $trackerAuthId)->where('camp_id', $campaignId)->first();
         if(empty($checkEsxist)){
+
             $campaign = new Campaign();
             $campaign->campaign_group_id = $campaignGroupId;
             $campaign->tracker_auth_id = $trackerAuthId;
             $campaign->name = $name;
             $campaign->camp_id = $campaignId;
-            $campaign->save();
+            $campaignSave = $campaign->save();
+
+            if($campaignSave){
+                if($request->has('campaign_tag_id')){
+                    $tagIds = $request->campaign_tag_id;
+                    if(!empty($tagIds)){
+                        foreach($tagIds as $tagId){
+                            $tagId = trim($tagId);
+                            if(is_numeric($tagId)){
+                                $tagId = intval($tagId);
+                                $tag = Tag::where('id', $tagId)->where('user_id' , $this->user->id)->first();
+                                if(!empty($tag)){
+                                    $tag->campaigns()->attach($campaign->id);
+                                }
+                            }
+                            else{
+                                $tagSlug = Str::slug($tagId);
+                                $checkTagExists = Tag::where('user_id' , $this->user->id)->where('slug', $tagSlug)->first();
+                                if(empty($checkTagExists)){
+                                    $tag = new Tag();
+                                    $tag->user_id = $this->user->id;
+                                    $tag->name = $tagId;
+                                    $tag->slug = $tagSlug;
+                                    $tag->save();
+                                    $tag->campaigns()->attach($campaign->id);
+                                }
+                                else{
+                                    $checkTagExists->campaigns()->attach($campaign->id);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             $output->msg->text = 'Campaign added to Group Successfully';
             $output->msg->type = 'success';

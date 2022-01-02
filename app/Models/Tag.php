@@ -19,4 +19,9 @@ class Tag extends Model
     {
         return $this->belongsToMany(Campaign::class, 'campaign_tags', 'tag_id', 'campaign_id');
     }
+
+    public function getId()
+    {
+        return $this->id;
+    }
 }

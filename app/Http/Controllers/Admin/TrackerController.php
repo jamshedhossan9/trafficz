@@ -17,7 +17,7 @@ class TrackerController extends Controller
     public function index()
     {
         $this->user = User::with(['roles', 'trackerUsers', 'trackerUsers.tracker'])->find($this->user->id);
-        $this->trackerAuths = TrackerAuth::where('user_id', $this->user->id)->with(['trackerUser', 'trackerUser.tracker'])->get();
+        $this->trackerAuths = TrackerAuth::where('user_id', $this->user->id)->with(['trackerUser', 'trackerUser.tracker'])->orderby('id','desc')->get();
         // dd($this->user);
         return view('admin.trackers', $this->data);
     }

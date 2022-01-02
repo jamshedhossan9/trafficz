@@ -28,6 +28,13 @@
                         <span class="hide-menu"> Campaigns </span>
                     </a>
                 </li>    
+            @else
+                <li>
+                    <a href="{{ route('user.dashboard.index') }}" class="waves-effect {{ menuActive('user.dashboard.index') }}">
+                        <i class="icon-layers"></i> 
+                        <span class="hide-menu"> Dashboard </span>
+                    </a>
+                </li>    
             @endif
         </ul>
     </div>

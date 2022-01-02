@@ -40,8 +40,15 @@ Route::group(['middleware' => 'auth'], function(){
         Route::resource('trackers', TrackerController::class);
         Route::resource('campaigns', CampaignController::class);
         Route::post('campaign-group/add-campaign', 'CampaignController@addCampaign')->name('addCampaignToGroup');
+        Route::get('campaign-group/delete-campaign/{id}', 'CampaignController@deleteCampaign')->name('deleteCampaignFromGroup');
         Route::post('campaign-group/add-user', 'CampaignController@addUser')->name('addUserToGroup');
         Route::get('campaign-group/{id}/added-users', 'CampaignController@addedUsersToGroup')->name('addedUsersToGroup');
+    });   
+    
+    Route::group(['namespace' => 'App\Http\Controllers\User', 'prefix' => 'user', 'as' => 'user.', 'middleware' => []], function(){
+        Route::resource('dashboard', DashboardController::class);
+        Route::post('campaign-group-stats', 'DashboardController@getAllCampaignGroupStats')->name('getAllCampaignGroupStats');
+        Route::post('campaign-hourly-stats', 'DashboardController@getCampaignHourlyStats')->name('getCampaignHourlyStats');
     });   
     
     Route::get('/global-js', function(){

@@ -26,6 +26,15 @@ class HomeController extends Controller
     {
         // dd($this->data);
         // dd(auth()->user()->trackers);
-        return view('home', $this->data);
+        // return view('home', $this->data);
+        if(isSuperAdmin()){
+            return redirect(route('superAdmin.users.index'));
+        }
+        else if(isAdmin()){
+            return redirect(route('admin.users.index'));
+        }
+        else{
+            return redirect(route('user.dashboard.index'));
+        }
     }
 }

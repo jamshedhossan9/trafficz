@@ -77,6 +77,15 @@
             top: 9px;
             border-top: 2px solid #aaa;
         }
+        .delete-campaign-from-group{
+            opacity: .3;
+            cursor: pointer;
+            transition: .1s ease-in;
+        }
+        .delete-campaign-from-group:hover{
+            opacity: 1;
+            color: #ba411d;
+        }
     </style>
 @endpush
 
@@ -93,7 +102,7 @@
                     <div class="item_title">Campaigns ({{count($group->campaigns)}}):</div>
                     <ul class="list">
                         @foreach ($group->campaigns as $campaign)
-                            <li class="item" title="{{$campaign->trackerAuth->trackerUser->tracker->name}} ({{$campaign->trackerAuth->name}}) {{$campaign->camp_id}}">{{$campaign->name}} ({{$campaign->trackerAuth->name}})</li>
+                            <li class="item" title="{{$campaign->trackerAuth->trackerUser->tracker->name}} ({{$campaign->trackerAuth->name}}) {{$campaign->camp_id}}">{{$campaign->name}} ({{$campaign->trackerAuth->name}}) <span class="delete-campaign-from-group tool-icon ti-trash" data-id="{{$campaign->id}}"></span></li>
                         @endforeach
                     </ul>
                 </div>
@@ -140,7 +149,7 @@
         </div>
     </div>
 
-    <div id="campaignGroupAddCampaignModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="campaignGroupAddCampaignModalLabel" aria-hidden="true">
+    <div id="campaignGroupAddCampaignModal" class="modal fade" role="dialog" aria-labelledby="campaignGroupAddCampaignModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <form action="{{ route('admin.addCampaignToGroup') }}" method="POST" 
@@ -171,8 +180,19 @@
                                 <label class="col-md-12">Tracker Auth</label>
                                 <div class="col-md-12">
                                     <select name="tracker_auth_id" id="" class="default-select2" data-live-search="true" data-placeholder="Select">
+                                        <option></option>
                                         @foreach ($trackerAuths as $item)
                                             <option value="{{ $item->id }}">{{ $item->name }} ({{ $item->trackerUser->tracker->name }})</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-md-12">Tags</label>
+                                <div class="col-md-12">
+                                    <select name="campaign_tag_id[]" id="" class="default-select2-tag" data-live-search="true" data-placeholder="Write or Select" multiple>
+                                        @foreach ($campaignTags as $item)
+                                            <option value="{{ $item->id }}">{{ $item->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -261,7 +281,7 @@
                         <div class="item_title">Campaigns (`+(group.campaigns.length)+`):</div>
                         <ul class="list">`;
                             for(var item of group.campaigns){
-                                campaignsHtml += `<li class="item" title="`+item.tracker_auth.tracker_user.tracker.name+` (`+item.tracker_auth.name+`) `+item.camp_id+`">`+item.name+` (`+item.tracker_auth.name+`)</li>`;
+                                campaignsHtml += `<li class="item" title="`+item.tracker_auth.tracker_user.tracker.name+` (`+item.tracker_auth.name+`) `+item.camp_id+`">`+item.name+` (`+item.tracker_auth.name+`) <span class="delete-campaign-from-group tool-icon ti-trash" data-id="`+item.id+`"</li>`;
                             }
                             campaignsHtml += `
                         </ul>`;
@@ -282,6 +302,7 @@
             if(typeof form !== "undefined"){
                 form.get(0).reset();
                 select2(form.find('.default-select2'));
+                select2Tag(form.find('.default-select2-tag'));
             }
             $('#campaignGroupAddCampaignModal').modal('hide');
             $('#campaignGroupAdduserModal').modal('hide');
@@ -338,6 +359,33 @@
             }, el)
             modal.find('[name="campaign_group_id"]').val(groupId);
             
+        });
+
+        $(document).on('click', '.delete-campaign-from-group', function(e){
+            e.preventDefault();
+            var el = $(this);
+            var row = el.closest('li');
+            var campaignId = el.attr('data-id');
+            
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'No, cancel!',
+                reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        ajax({
+                            url: listUrls.adminDeleteCampaignFromGroup(campaignId),
+                            successCallback: function(resp, el){
+                                el.remove();
+                            }
+                        }, row);
+                    }
+                })
+
         });
     </script>
 @endpush
