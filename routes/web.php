@@ -45,11 +45,13 @@ Route::group(['middleware' => 'auth'], function(){
         Route::get('campaign-group/{id}/added-users', 'CampaignController@addedUsersToGroup')->name('addedUsersToGroup');
     });   
     
-    Route::group(['namespace' => 'App\Http\Controllers\User', 'prefix' => 'user', 'as' => 'user.', 'middleware' => []], function(){
+    Route::group(['namespace' => 'App\Http\Controllers\User', 'prefix' => 'user', 'as' => 'user.', 'middleware' => ['roleuser']], function(){
         Route::resource('dashboard', DashboardController::class);
         Route::post('campaign-group-stats', 'DashboardController@getAllCampaignGroupStats')->name('getAllCampaignGroupStats');
         Route::post('campaign-hourly-stats', 'DashboardController@getCampaignHourlyStats')->name('getCampaignHourlyStats');
-    });   
+    }); 
+    
+    // Route::resource('profile', App\Http\Controllers\User\ProfileController::class);
     
     Route::get('/global-js', function(){
         return response(view('sections.global-js'), 200)
