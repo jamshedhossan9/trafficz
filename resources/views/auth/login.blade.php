@@ -39,23 +39,29 @@
             <h3 class="box-title m-b-20">Sign In</h3>
             <div class="form-group ">
                 <div class="col-xs-12">
-                  <input name="email" class="form-control @error('email') is-invalid @enderror" id="email" type="email" required placeholder="{{ __('E-Mail Address') }}" value="{{ old('email') }}" autocomplete="email" autofocus>
-                  @error('email')
+                    <input name="email" class="form-control @error('email') is-invalid @enderror" id="email" type="email" required placeholder="{{ __('E-Mail Address') }}" value="{{ old('email') }}" autocomplete="email" autofocus>
+                    @error('email')
                         <div class="invalid-feedback" role="alert">
                             <strong>{{ $message }}</strong>
                         </div>
                     @enderror
                 </div>
-              </div>
-              <div class="form-group">
+            </div>
+            <div class="form-group">
                 <div class="col-xs-12">
-                  <input name="password" class="form-control @error('password') is-invalid @enderror"  id="password" type="password" required placeholder="{{ __('Password') }}">
-                  @error('password')
+                    <input name="password" class="form-control @error('password') is-invalid @enderror"  id="password" type="password" required placeholder="{{ __('Password') }}">
+                    @error('password')
                         <div class="invalid-feedback" role="alert">
                             <strong>{{ $message }}</strong>
                         </div>
                     @enderror
                 </div>
+            </div>
+            <div class="form-group">
+                <div class="checkbox checkbox-success">
+                    <input type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
+                    <label for="remember">Remember Me</label>
+                </div> 
             </div>
             <div class="form-action">
                 <button type="submit" class="btn btn-info btn-block">

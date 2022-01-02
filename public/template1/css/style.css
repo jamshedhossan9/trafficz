@@ -2053,7 +2053,7 @@ table.dataTable thead .sorting:after {
   -webkit-transition: 0.3s ease-in-out;
   background-color: #ffffff;
   border-radius: 1px;
-  border: 1px solid rgba(120, 130, 140, 0.13);
+  border: 1px solid rgba(120, 130, 140, 0.5);
   content: "";
   display: inline-block;
   height: 17px;
