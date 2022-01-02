@@ -9,6 +9,10 @@ class TrackerAuth extends Model
 {
     use HasFactory;
 
+    protected $casts = [
+        'auth' => 'array',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);

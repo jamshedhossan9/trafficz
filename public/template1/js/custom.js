@@ -1,9 +1,9 @@
 $(document).ready(function() {
     $(function() {
-        $(".preloader").fadeOut();
+        $(".preloader").fadeOut().addClass('block-ui');
         $('#side-menu').metisMenu();
     });
-     
+
     // Theme settings
 
     //Open-Close-right sidebar
@@ -22,8 +22,7 @@ $(document).ready(function() {
         $(".fxsdr").click(function() {
             $("body").toggleClass("fix-sidebar");
         });
-       
-        
+
         // Service panel js
 
         if ($("body").hasClass("fix-header")) {
@@ -78,12 +77,12 @@ $(document).ready(function() {
             if (width < 1170) {
                 $('body').addClass('content-wrapper');
                 $(".open-close i").removeClass('icon-arrow-left-circle');
-                $(".sidebar-nav, .slimScrollDiv").css("overflow-x", "visible").parent().css("overflow", "visible");
-                $(".logo span").hide();
+                $(".sidebar").css("overflow", "inherit").parent().css("overflow", "visible");
+                
             } else {
                 $('body').removeClass('content-wrapper');
                 $(".open-close i").addClass('icon-arrow-left-circle');
-                $(".logo span").show();
+                
             }
         });
     });
@@ -94,6 +93,7 @@ $(document).ready(function() {
         $(".open-close").on('click', function() {
             if ($("body").hasClass("content-wrapper")) {
                 $("body").trigger("resize");
+
                 $(".sidebar-nav, .slimScrollDiv").css("overflow", "hidden").parent().css("overflow", "visible");
                 $("body").removeClass("content-wrapper");
                 $(".open-close i").addClass("icon-arrow-left-circle");
@@ -101,14 +101,14 @@ $(document).ready(function() {
 
             } else {
                 $("body").trigger("resize");
-                $(".sidebar-nav, .slimScrollDiv").css("overflow-x", "visible").parent().css("overflow", "visible");
+                $(".sidebar-nav, .slimScrollDiv").css("overflow", "inherit").parent().css("overflow", "visible");
 
                 $("body").addClass("content-wrapper");
                 $(".open-close i").removeClass("icon-arrow-left-circle");
                 $(".logo span").hide();
             }
-
-        });
+        });        
+        
 
         // Collapse Panels
 
@@ -207,13 +207,6 @@ $(document).ready(function() {
         color: '#dcdcdc',
 
     });
-    $('.slimscrollsidebar').slimScroll({
-        height: '100%',
-        position: 'right',
-        size: "0px",
-        color: '#dcdcdc',
-
-    });
     $('.chat-list').slimScroll({
         height: '100%',
         position: 'right',
@@ -221,6 +214,7 @@ $(document).ready(function() {
         color: '#dcdcdc',
 
     });
+
     // Resize all elements
     $("body").trigger("resize");
 
@@ -241,8 +235,7 @@ $(document).ready(function() {
         $("#loginform").slideUp();
         $("#recoverform").fadeIn();
     });
-
-
+    
     // Update 1.5
     
     // this is for close icon when navigation open in mobile view
@@ -250,4 +243,3 @@ $(document).ready(function() {
         $(".navbar-toggle i").toggleClass("ti-menu");
         $(".navbar-toggle i").addClass("ti-close");
     });
-

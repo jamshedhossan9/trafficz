@@ -55,6 +55,11 @@ class User extends Authenticatable
         return $this->hasMany(TrackerAuth::class);
     }
 
+    public function trackerUsers()
+    {
+        return $this->hasMany(TrackerUser::class);
+    }
+
     public function campaignGroups() : BelongsToMany
     {
         return $this->belongsToMany(CampaignGroup::class, 'campaign_group_users', 'user_id', 'campaign_group_id');

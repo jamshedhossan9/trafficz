@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+// use App\Http\Controllers\SuperAdmin\User;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,14 +14,38 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Route::get('/', function () {
+//     return view('welcome');
+// });
 
 Route::get('/test', function () {
     return view('welcome');
 });
+Route::redirect('/', '/login', 301);
 
 Auth::routes();
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::get('/home-1', [App\Http\Controllers\HomeController::class, 'index'])->name('home-1');
+
+// Route::get('users', [App\Http\Controllers\SuperAdmin\User::class, 'index'])->name('users');
+
+Route::group(['middleware' => 'auth'], function(){
+    Route::group(['namespace' => 'App\Http\Controllers\SuperAdmin', 'prefix' => 'super-admin', 'as' => 'superAdmin.', 'middleware' => ['rolesuperadmin']], function(){
+        Route::resource('users', UserController::class);
+    });   
+    
+    Route::group(['namespace' => 'App\Http\Controllers\Admin', 'prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['roleadmin']], function(){
+        Route::resource('users', UserController::class);
+        Route::resource('trackers', TrackerController::class);
+        Route::resource('campaigns', CampaignController::class);
+        Route::post('campaign-group/add-campaign', 'CampaignController@addCampaign')->name('addCampaignToGroup');
+        Route::post('campaign-group/add-user', 'CampaignController@addUser')->name('addUserToGroup');
+        Route::get('campaign-group/{id}/added-users', 'CampaignController@addedUsersToGroup')->name('addedUsersToGroup');
+    });   
+    
+    Route::get('/global-js', function(){
+        return response(view('sections.global-js'), 200)
+                      ->header('Content-Type', 'application/javascript');
+    })->name('global-js');
+});
