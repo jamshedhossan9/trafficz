@@ -39,10 +39,17 @@ Route::group(['middleware' => 'auth'], function(){
         Route::resource('users', UserController::class);
         Route::resource('trackers', TrackerController::class);
         Route::resource('campaigns', CampaignController::class);
+        Route::resource('invoices', InvoiceController::class);
+        
         Route::post('campaign-group/add-campaign', 'CampaignController@addCampaign')->name('addCampaignToGroup');
         Route::get('campaign-group/delete-campaign/{id}', 'CampaignController@deleteCampaign')->name('deleteCampaignFromGroup');
         Route::post('campaign-group/add-user', 'CampaignController@addUser')->name('addUserToGroup');
         Route::get('campaign-group/{id}/added-users', 'CampaignController@addedUsersToGroup')->name('addedUsersToGroup');
+        Route::post('campaign-group/add-credit', 'CampaignController@addCredit')->name('addCreditToGroup');
+        Route::get('campaign-group/{id}/list-credit', 'CampaignController@listCredit')->name('listCreditFromGroup');
+        Route::get('campaign-group/credit/{id}', 'CampaignController@deleteCredit')->name('deleteCreditFromGroup');
+        Route::get('invoices/user/{id}', 'InvoiceController@byUser')->name('invoicesByUser');
+        Route::post('invoices/bulk-update', 'InvoiceController@bulkUpdate')->name('invoiceBulkUpdate');
     });   
     
     Route::group(['namespace' => 'App\Http\Controllers\User', 'prefix' => 'user', 'as' => 'user.', 'middleware' => ['roleuser']], function(){
@@ -50,6 +57,7 @@ Route::group(['middleware' => 'auth'], function(){
         Route::post('campaign-group-stats', 'DashboardController@getAllCampaignGroupStats')->name('getAllCampaignGroupStats');
         Route::post('campaign-hourly-stats', 'DashboardController@getCampaignHourlyStats')->name('getCampaignHourlyStats');
     }); 
+    Route::get('campaign-search-stats', [App\Http\Controllers\User\DashboardController::class, 'campaignService'])->name('public.campaingService');
     
     // Route::resource('profile', App\Http\Controllers\User\ProfileController::class);
     

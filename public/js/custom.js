@@ -93,9 +93,21 @@ var selectpicker = function(el){
 var blockUi = function(){
     $('.preloader').fadeIn();
 };
+
 var unblockUi = function(){
     $('.preloader').fadeOut();
 };
+
+var showLoader = function (el){
+    if(el.length){
+        el.attr('data-loading', 'true');
+    }
+}
+var hideLoader = function (el){
+    if(el.length){
+        el.attr('data-loading', 'false');
+    }
+}
 
 var setJsonViewer = function (){
     var pre = $(document).find('.json-viewer[data-init="false"]');

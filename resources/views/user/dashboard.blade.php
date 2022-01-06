@@ -18,7 +18,7 @@
             max-width:100%;
             display: block;
             background: #aaa;
-            /* border-radius: 6px; */
+            border-radius: 3px;
             padding-top: 35%;
         }
         .dashboard-stat .chart-svg-wrapper{
@@ -27,7 +27,7 @@
         left: 0;
         bottom: 0;
         right: 0;
-        /* border-radius: 6px; */
+        border-radius: 3px;
         overflow: hidden;
         }
         .dashboard-stat .chart-svg-wrapper .chart-svg{
@@ -63,7 +63,9 @@
             color: #f1f4f6;
         }
         .dashboard-stat .stat .count{
-            font-size: 250%;
+            font-size: 190%;
+            font-weight: 500;
+            text-shadow: 3px 1px 1px rgb(0 0 0 / 20%);
         }
         .dashboard-stat .stat .text{
             font-size: 120%;
@@ -93,6 +95,19 @@
         .hourly-row-cell{
             background: #fafbfb;
         }
+
+        .campaign-group-panel>.panel-heading{
+            background: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 3;
+        }
+        .campaign-group-panel .hourly-row-cell table thead th{
+            background: #f7f9fa;
+            position: sticky;
+            top: 57px;
+            z-index: 2;
+        }
     </style>
 @endpush
 
@@ -121,13 +136,24 @@
             </div>
         </div>
         <div class="col">
+            <div class="dashboard-stat dashboard-stat-3">
+                <div class="chart-svg-wrapper">
+                    <img class="chart-svg" src="{{asset('img/chart-svg/line-chart-smooth-white.svg')}}">
+                </div>
+                <div class="stat">
+                    <div class="count total_epc_stat">0</div>
+                    <div class="text">EPC</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
             <div class="dashboard-stat dashboard-stat-4">
                 <div class="chart-svg-wrapper">
                     <img class="chart-svg" src="{{asset('img/chart-svg/bar-chart-white.svg')}}">
                 </div>
                 <div class="stat">
-                    <div class="count total_epc_stat">0</div>
-                    <div class="text">EPC</div>
+                    <div class="count total_pending_amount">0</div>
+                    <div class="text">Pending Amount</div>
                 </div>
             </div>
         </div>
@@ -206,7 +232,7 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     
     <script>
-        
+        var updatedPendingInvoiceAmount = false;
         formSubmission['campaign-group-add-campaign-success'] = function(response, form){
             var data = response.data;
             if(data){
@@ -322,8 +348,8 @@
                                         <tr class="main-row" data-id="`+campaigns[y].id+`">
                                             <td><span class="ti-plus campaign-hourly-stat-btn m-r-5" data-loaded="false"></span> `+campaigns[y].name+`</td>
                                             <td>`+stats.clicks+`</td>
-                                            <td>`+stats.revenue+`</td>
-                                            <td>`+stats.epc+`</td>
+                                            <td>$`+stats.revenue+`</td>
+                                            <td>$`+stats.epc+`</td>
                                             <td>`+(tags.join(', '))+`</td>
                                         </tr>
                                         <tr class="hourly-row hidden" data-id="`+campaigns[y].id+`">
@@ -332,12 +358,21 @@
                                     `;
                                 }
                             }
+                            if(groupStats[x].credit){
+                                tfoot += `
+                                    <tr>
+                                        <th>Credit</th>
+                                        <th>-</th>
+                                        <th colspan="3">$`+groupStats[x].credit+`</th>
+                                    </tr>
+                                `;      
+                            }
                             tfoot += `
                                 <tr>
                                     <th>Total</th>
                                     <th>`+total.clicks+`</th>
-                                    <th>`+total.revenue+`</th>
-                                    <th>`+total.epc+`</th>
+                                    <th>$`+total.revenue+`</th>
+                                    <th>$`+total.epc+`</th>
                                     <th></th>
                                 </tr>
                             `;  
@@ -349,8 +384,9 @@
                         var allTotals = resp.data.totals;
                         if(allTotals != null){
                             $('.dashboard-stats-area .total_click_stat').text(allTotals.clicks);
-                            $('.dashboard-stats-area .total_revenue_stat').text(allTotals.revenue);
-                            $('.dashboard-stats-area .total_epc_stat').text(allTotals.epc);
+                            $('.dashboard-stats-area .total_revenue_stat').text('$'+allTotals.revenue);
+                            $('.dashboard-stats-area .total_epc_stat').text('$'+allTotals.epc);
+                            $('.dashboard-stats-area .total_pending_amount').text('$'+resp.data.pending_amount);
                         }
                     }
                 }
@@ -433,8 +469,8 @@
                                         <tr>
                                             <td>`+item.name+`</td>
                                             <td>`+item.clicks+`</td>
-                                            <td>`+item.revenue+`</td>
-                                            <td>`+item.epc+`</td>
+                                            <td>$`+item.revenue+`</td>
+                                            <td>$`+item.epc+`</td>
                                         </tr>
                                     `;
                                 }

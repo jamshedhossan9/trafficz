@@ -29,4 +29,19 @@ class Campaign extends Model
     {
         return $this->tags()->pluck('tag_id');
     }
+
+    public function reports()
+    {
+        return $this->hasMany(CampaignGroupReport::class);
+    }
+    
+    public function reportByDate($date)
+    {
+        return $this->reports()->where('date', $date);
+    }
+
+    public function reportsByDateRange($dateFrom, $dateTo)
+    {
+        return $this->reports()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo);
+    }
 }

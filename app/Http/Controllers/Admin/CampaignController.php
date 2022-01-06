@@ -11,6 +11,7 @@ use App\Models\TrackerAuth;
 use App\Models\User;
 use App\Models\Tag;
 use App\Models\CampaignTag;
+use App\Models\Credit;
 use Illuminate\Support\Str;
 
 class CampaignController extends Controller
@@ -22,7 +23,7 @@ class CampaignController extends Controller
      */
     public function index()
     {
-        $this->campaignGroups = CampaignGroup::where('user_id', $this->user->id)->with(['users', 'campaigns.trackerAuth.trackerUser.tracker'])->orderBy('id', 'desc')->get();
+        $this->campaignGroups = CampaignGroup::where('user_id', $this->user->id)->with(['users', 'campaigns.trackerAuth.trackerUser.tracker','credit'])->orderBy('id', 'desc')->get();
         // dd($this->campaignGroups);
         $this->trackerAuths = TrackerAuth::where('user_id', $this->user->id)->with(['trackerUser', 'trackerUser.tracker'])->get();
         $this->campaignTags = Tag::where('user_id', $this->user->id)->orderBy('name', 'asc')->get();
@@ -288,4 +289,85 @@ class CampaignController extends Controller
         return response()->json($output);
     }
 
+    public function addCredit(Request $request)
+    {
+        $request->validate([
+            'date' => 'required',
+            'amount' => 'required',
+            'campaign_group_id' => 'required',
+        ],[
+            'campaign_group_id.required' => 'Group not found'
+        ]);
+
+        $output = $this->ajaxRes(true);
+
+        $date = $request->date;
+        $amount = $request->amount;
+        $groupId = $request->campaign_group_id;
+        $groupId = intval($groupId);
+        $amount = floatval($amount);
+
+        $checkExists = Credit::where('campaign_group_id', $groupId)->where('date', $date)->first();
+        if(empty($checkExists)){
+            $credit = new Credit();
+            $credit->campaign_group_id = $groupId;
+            $credit->date = $date;
+            $credit->amount = $amount;
+            $credit->save();
+
+            $output->status = true;
+            $output->msg->text = 'Credit added Successfully';
+            $output->msg->title = 'Successful';
+            $output->msg->type = 'success';
+            $group = CampaignGroup::with('credit')->find($groupId);
+            $output->data['group'] = $group;
+            $output->data['credit'] = $credit;
+        }
+        else{
+            $output->msg->text = 'Credit already added for this date';
+        }
+
+        return response()->json($output);
+    }
+    
+    public function deleteCredit($id)
+    {
+        $output = $this->ajaxRes(true);
+        $id = intval($id);
+
+        $credit = Credit::with('campaignGroup')->find($id);
+        if($credit && !$credit->used && !is_null($credit->campaignGroup) && $credit->campaignGroup->user_id == $this->user->id){
+            $groupId = $credit->campaign_group_id;
+            $credit->delete();    
+            $output->status = true;
+            $output->msg->text = 'Credit Delete Successfully';
+            $output->msg->title = 'Successful';
+            $output->msg->type = 'success';
+            $group = CampaignGroup::with('credit')->find($groupId);
+            $output->data['group'] = $group;
+        }
+        else{
+            $output->msg->text = 'Credit not found';
+        }
+
+        return response()->json($output);
+    }
+
+    public function listCredit($id)
+    {
+        $output = $this->ajaxRes();
+        $id = intval($id);
+
+        $credits = Credit::where('campaign_group_id', $id)->orderBy('date', 'desc')->limit(15)->get();
+        if(!empty($credits)){
+            $output->status = true;
+            $output->data['credits'] = $credits;
+            $output->msg->text = 'Credits list';
+        }
+        else{
+            $output->msg->text = 'Credits not found';
+        }
+
+        return response()->json($output);
+    }
 }

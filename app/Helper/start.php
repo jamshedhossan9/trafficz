@@ -382,7 +382,11 @@ function getBinomCampaignStat($auth, $from, $to, $id){
     }
     else{
         $response = json_decode($response, true);
+        // dd($response);
         $status = empty($response['status']) ? 'success' : $response['status'];
+        if(!empty($response['error'])){
+            $status = 'error';
+        }
         if(is_array($response) && !empty($response) && $status == 'success'){
             foreach ($response as $key => $value) {
                 if($value['level'] == 1){
@@ -430,6 +434,9 @@ function getBinomCampaignStatByHour($auth, $from, $to, $id){
     else{
         $response = json_decode($response, true);
         $status = empty($response['status']) ? 'success' : $response['status'];
+        if(!empty($response['error'])){
+            $status = 'error';
+        }
         if(is_array($response) && !empty($response) && $status == 'success'){
             return $response;
         }

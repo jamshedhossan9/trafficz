@@ -21,7 +21,7 @@
                             <td>{{ $item->name }}</td>
                             <td>{{ $item->email }}</td>
                             <td>
-                                
+                                <a href="{{ route('admin.invoicesByUser', $item->id) }}" class="btn btn-info">Invoices</a>
                             </td>
                         </tr>
                     @endforeach
@@ -88,7 +88,9 @@
                         <tr>
                             <td>`+user.name+`</td>
                             <td>`+user.email+`</td>
-                            <td></td>
+                            <td>
+                                <a href="`+(listUrls.adminInvoicesByUser(item.id))+`" class="btn btn-info">Invoices</a>
+                            </td>
                         </tr>
                     `;
                     $('.user-table tbody').prepend(html);

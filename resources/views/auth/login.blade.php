@@ -7,7 +7,7 @@
 <meta name="description" content="">
 <meta name="author" content="">
 <link rel="icon" type="image/png" sizes="16x16" href="../plugins/images/favicon.png">
-<title>Elite Admin - is a responsive admin template</title>
+<title>TrafficZ</title>
 <!-- Bootstrap Core CSS -->
 <link href="{{asset('template1/bootstrap/dist/css/bootstrap.min.css')}}" rel="stylesheet">
 <!-- animation CSS -->
@@ -58,9 +58,11 @@
                 </div>
             </div>
             <div class="form-group">
-                <div class="checkbox checkbox-success">
-                    <input type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
-                    <label for="remember">Remember Me</label>
+                <div class="col-xs-12">
+                    <div class="checkbox checkbox-info">
+                        <input type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
+                        <label for="remember">Remember Me</label>
+                    </div> 
                 </div> 
             </div>
             <div class="form-action">

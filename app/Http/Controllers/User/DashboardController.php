@@ -6,7 +6,11 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Campaign;
 use App\Models\CampaignGroup;
+use App\Models\CampaignGroupReport;
 use App\Models\CampaignGroupUser;
+use App\Services\CampaignService;
+use App\Models\Role;
+use App\Models\Invoice;
 
 class DashboardController extends Controller
 {
@@ -139,6 +143,7 @@ class DashboardController extends Controller
         // exit();
         $campaignGroupStats = [];
         $campaignGroupTotalStats = [];
+        $allCredits = 0;
         foreach($campaignGroupUsers as $campaignGroupUser){
             $campaignGroup = $campaignGroupUser->campaignGroup;
             $group = [
@@ -146,6 +151,7 @@ class DashboardController extends Controller
                 'name' => $campaignGroup->name,
                 'campaigns' => [],
                 'total' => [],
+                'credit' => 0,
             ];
             $apiResponses = [];
             $apiResponsesTotals = [];
@@ -168,31 +174,51 @@ class DashboardController extends Controller
                     'tags' => $campaign->tags,
                     'stats' => [
                         'clicks' => $stats['visits'],
-                        'revenue' => $stats['cost'],
-                        'epc' => $stats['cpv'],
+                        'revenue' => number_format($stats['cost'], 2),
+                        'epc' => number_format($stats['cpv'], 2),
                     ]
                 ];
                 $apiResponsesTotals[] = $stats;
+            }
+
+            $credits = $campaignGroup->credits()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
+            if(!empty($credits)){
+                foreach($credits as $credit){
+                    $group['credit'] += $credit->amount;
+                    $allCredits += $credit->amount;
+                }
             }
             
             $group['campaigns'] = $apiResponses;
             $total = trackerCampaignStatSum($apiResponsesTotals);
             $group['total'] = [
                 'clicks' => $total['visits'],
-                'revenue' => $total['cost'],
-                'epc' => $total['cpv'],
+                'revenue' => $total['cost'] + $group['credit'],
+                'epc' => number_format($total['cpv'], 2),
             ];
+            $group['total']['revenue'] = number_format($group['total']['revenue'], 2);
+
             $campaignGroupTotalStats[] = $total;
             $campaignGroupStats[$campaignGroup->id] = $group;
         }
         $allTotals = trackerCampaignStatSum($campaignGroupTotalStats);
         $campaignGroupTotalStats = [
             'clicks' => $allTotals['visits'],
-            'revenue' => $allTotals['cost'],
-            'epc' => $allTotals['cpv'],
+            'revenue' => $allTotals['cost'] + $allCredits,
+            'epc' => number_format($allTotals['cpv'], 2),
         ];
+
+        $output->data['pending_amount'] = 0;
+        if($groupId == 'all'){
+            $output->data['pending_amount'] = $campaignGroupTotalStats['revenue'] + $this->getPendingInvoiceAmount($dateFrom);
+        }
+
+        $output->data['pending_amount'] = number_format($output->data['pending_amount'], 2);
+        $campaignGroupTotalStats['revenue'] = number_format($campaignGroupTotalStats['revenue'], 2);
+
         $output->data['groupStats'] = $campaignGroupStats;
         $output->data['totals'] = $campaignGroupTotalStats;
+        
         $output->status = true;
 
         return response()->json($output);
@@ -226,8 +252,8 @@ class DashboardController extends Controller
                         $temp = [
                             'name' => $item['hourOfDay'].':00 - '.($item['hourOfDay']+1).':00',
                             'clicks' => $item['visits'],
-                            'revenue' => $item['cost'],
-                            'epc' => $item['cpv'],
+                            'revenue' => number_format($item['cost'], 2),
+                            'epc' => number_format($item['cpv'], 2),
                         ];
                         $hourlyData[] = $temp;
                     }
@@ -244,8 +270,8 @@ class DashboardController extends Controller
                             $temp = [
                                 'name' => $item['name'],
                                 'clicks' => $visits,
-                                'revenue' => $cost,
-                                'epc' => $cpv,
+                                'revenue' => number_format($cost, 2),
+                                'epc' => number_format($cpv, 2),
                             ];
                             $hourlyData[] = $temp;
                         }
@@ -270,5 +296,61 @@ class DashboardController extends Controller
             $output->msg->text = 'Campaign not found';
         }
         return response()->json($output);
+    }
+
+    public function getPendingInvoiceAmount($dateTo)
+    {
+        $amount = 0;
+
+        $lastInvoice = Invoice::whereUserId($this->user->id)->orderBy('id', 'desc')->first();
+        if(!empty($lastInvoice)){
+            $dateFrom = date("Y-m-d", strtotime("+1 day", strtotime($lastInvoice->end_date)));
+            $dateTo = date("Y-m-d", strtotime("-1 day", strtotime($dateTo)));
+            if(strtotime($dateTo) >= strtotime($dateFrom)){
+                $invoiceData = ['amount' => 0, 'credit' => 0];
+                $campaignGroupUsers = CampaignGroupUser::with(['campaignGroup'])->where('user_id', $this->user->id)->get();
+                $allCreditIds = [];
+                if(!empty($campaignGroupUsers)){
+                    foreach($campaignGroupUsers as $campaignGroupUser){
+                        $campaigns = $campaignGroupUser->campaignGroup->campaigns()->get();
+                        $credits = $campaignGroupUser->campaignGroup->credits()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
+                        if(!empty($credits)){
+                            foreach($credits as $credit){
+                                $invoiceData['credit'] += $credit->amount;
+                                $allCreditIds[] = $credit->id;
+                            }
+                        }
+                        if(!empty($campaigns)){
+                            foreach($campaigns as $campaign){
+                                $reports = $campaign->reports()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
+                                if(!empty($reports)){
+                                    foreach($reports as $report){
+                                        $invoiceData['amount'] += $report->cost;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                $amount = $invoiceData['amount'] + $invoiceData['credit'];
+            }
+        }
+        
+        return $amount;
+    }
+
+    public function campaignService()
+    {
+        $campaignService = new CampaignService();
+        // $campaignService->getAllCampaignGroupStats(7);
+        // dd();
+        // $report = Campaign::find(8);
+        // dd($report->reportsByDateRange('2022-01-03', '2022-01-04')->get());
+
+        // $roleUsers = Role::find(3);
+        // $users = $roleUsers->users()->get();
+        // dd($users);
+
+        $campaignService->generateInvoice();
     }
 }

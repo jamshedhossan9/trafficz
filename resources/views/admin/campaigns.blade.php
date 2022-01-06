@@ -5,6 +5,7 @@
 @endsection
 
 @push('css')
+    <link rel="stylesheet" href="{{asset('plugins/bower_components/bootstrap-datepicker/bootstrap-datepicker.min.css')}}">
     <style>
         .group-grid {
             /* display: grid; */
@@ -96,6 +97,7 @@
                 <div class="title toolbox">
                     <span class="group_name">{{$group->name}}</span>
                     <a href="#" class="action-btn add-campaign-btn" data-id="{{$group->id}}" title="Add Campaign"><span class="fa fa-plus"></span></a>
+                    <a href="#" class="action-btn add-credit-btn" data-id="{{$group->id}}" title="Add Credit"><span class="fa fa-credit-card-alt"></span></a>
                     <a href="#" class="action-btn add-user-btn" data-id="{{$group->id}}" title="Add Users"><span class="fa fa-user"></span></a>
                 </div>
                 <div class="campaign_list item_list">
@@ -113,6 +115,18 @@
                             <li class="item" title="{{$item->email}}">{{$item->name}}</li>
                         @endforeach
                     </ul>
+                </div>
+                <div class="flex-grow-none p-15 b-t">
+                    <strong>
+                        Credit: 
+                        $<span class="credit-amount">
+                            @if(!is_null($group->credit))
+                            {{$group->credit->amount}}
+                            @else
+                            0
+                            @endif
+                        </span>
+                    </strong>
                 </div>
             </div>
         @endforeach
@@ -237,9 +251,84 @@
         </div>
     </div>
 
+    
+    <div id="campaignGroupAddCreditModal" class="modal fade" role="dialog" aria-labelledby="campaignGroupAddCreditModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                    <h4 class="modal-title" id="myModalLabel">Add Credit to Group</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="clearfix">
+                        <div class="clearfix">
+                            <form action="{{ route('admin.addCreditToGroup') }}" method="POST" 
+                                class="form-horizontal ajax-form m-0"
+                                data-success="campaign-group-add-credit-success"
+                                >
+                                @csrf
+                                <div class="flex-box gap-10">
+                                    <div class="flex-grow">
+                                        <div class="form-group">
+                                            <div class="col-xs-12">
+                                                <label for="" class="control-label">Date</label>
+                                                <input type="text" class="form-control credit_datepicker"  name="date" required autocomplete="off" placeholder="Choose date">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow">
+                                        <div class="form-group">
+                                            <div class="col-xs-12">
+                                                <label for="" class="control-label">Amount</label>
+                                                <input type="text" class="form-control"  name="amount" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex-none">
+                                        <div class="form-group">
+                                            <div class="col-xs-12">
+                                                <label for="" class="control-label invisible">button</label>
+                                                <div class="clearfix">
+                                                    <input type="hidden" name="campaign_group_id" value="">
+                                                    <button class="btn btn-info" type="submit">Add</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div class="clearfix credit-list-wrapper" data-loading="true">
+                            <table class="table table-bordered credit-list">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Amount</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+
+                                </tbody>
+                            </table>
+                            <div class="loader">
+                                <span class="fa fa-spin fa-circle-o-notch icon"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-inverse waves-effect" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 @endsection
 
 @push('js')
+    <script src="{{asset('plugins/bower_components/bootstrap-datepicker/bootstrap-datepicker.min.js')}}"></script>
     <script>
         formSubmission['campaign-group-create-success'] = function(response, form){
             var data = response.data;
@@ -315,6 +404,142 @@
             $('#campaignGroupAddCampaignModal').find('[name="campaign_group_id"]').val(groupId);
             $('#campaignGroupAddCampaignModal').modal('show');
         });
+
+        $('.credit_datepicker').datepicker({
+            autoclose: true,
+            todayHighlight: true,
+            format: 'yyyy-mm-dd',
+        });
+
+        $(document).on('click', '.add-credit-btn', function(e){
+            e.preventDefault();
+            var el = $(this);
+            var groupId = el.attr('data-id');
+            modal = $('#campaignGroupAddCreditModal');
+            modal.find('[name="campaign_group_id"]').val(groupId);
+            modal.modal('show');
+            var creditListCon = modal.find('.credit-list-wrapper');
+            var creditList = creditListCon.find('.credit-list');
+            showLoader(creditListCon);
+            ajax({
+                blockUi: false,
+                url: listUrls.adminListCreditFromGroup(groupId),
+                successCallback: function(resp, el){
+                    hideLoader(el.creditListCon);
+                    var listArea = el.creditList.find('tbody');
+                    listArea.empty();
+                    var dataFound = false;
+                    if(typeof resp !== "undefined" && resp.data != null && resp.data.credits != null){
+                        var html = ``;
+                        for(var item of resp.data.credits){
+                            dataFound = true;
+                            html += `
+                                <tr class="credit-row" data-id="`+item.id+`">
+                                    <td>`+item.date+`</td>
+                                    <td>`+item.amount+`</td>
+                                    <td class="text-center">
+                                    `;
+                                    if(!item.used){
+                                        html += `<a class="btn btn-sm btn-danger delete-credit" href="`+(listUrls.adminDeleteCreditFromGroup(item.id))+`">Delete</a>`;
+                                    }
+                                    html += `
+                                    </td>
+                                </tr>
+                            `;
+                        }
+                        listArea.html(html);
+                    }
+
+                    if(!dataFound){
+                        listArea.html('<tr><td colspan="3" class="text-center">No Credits found</td></tr>');
+                    }
+                },
+                errorCallback: function(resp, el){
+                    hideLoader(el.creditListCon);
+                }
+            }, {creditListCon: creditListCon, creditList: creditList});
+        });
+
+        $(document).on('click', '.credit-list .delete-credit', function(e){
+            e.preventDefault();
+            var el = $(this);
+            var row = el.closest('.credit-row');
+            var url = el.attr('href');
+            
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'No, cancel!',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    ajax({
+                        url: url,
+                        successCallback: function(resp, row){
+                            row.remove();
+                            var todayAmount = 0;
+                            var groupId = 0;
+                            if(resp.data != null && resp.data.group != null){
+                                groupId = resp.data.group.id;
+                                if(resp.data.group.credit != null){
+                                    todayAmount = resp.data.group.credit.amount;
+                                }
+                            }
+                            if(groupId){
+                                var groupDom = $('.campaign-groups-con .campaign_group[data-id="'+groupId+'"]')
+                                if(groupDom.length){
+                                    groupDom.find('.credit-amount').text(todayAmount);
+                                }
+                            }
+                        }
+                    }, row);
+                }
+            });
+
+        });
+
+        formSubmission['campaign-group-add-credit-success'] = function(resp, form){
+            var creditList = form.closest('.modal').find('.credit-list tbody');
+            var html = ``;
+            var todayAmount = 0;
+            var groupId = 0;
+            form.get(0).reset();
+            if(resp.data != null){
+                if(resp.data.group != null){
+                    groupId = resp.data.group.id;
+                    if(resp.data.group.credit != null){
+                        todayAmount = resp.data.group.credit.amount;
+                    }
+                }
+                if(resp.data.credit != null){
+                    var item = resp.data.credit;
+                    html += `
+                        <tr class="credit-row" data-id="`+item.id+`">
+                            <td>`+item.date+`</td>
+                            <td>`+item.amount+`</td>
+                            <td class="text-center">
+                            `;
+                            if(!item.used){
+                                html += `<a class="btn btn-sm btn-danger delete-credit" href="`+(listUrls.adminDeleteCreditFromGroup(item.id))+`">Delete</a>`;
+                            }
+                            html += `
+                            </td>
+                        </tr>
+                    `;
+                    creditList.prepend(html);
+                }
+            }
+            if(groupId){
+                var groupDom = $('.campaign-groups-con .campaign_group[data-id="'+groupId+'"]');
+                console.log(groupDom);
+                if(groupDom.length){
+                    groupDom.find('.credit-amount').text(todayAmount);
+                }
+            }
+        };
         
         $(document).on('click', '.add-user-btn', function(e){
             e.preventDefault();
@@ -375,16 +600,16 @@
                 confirmButtonText: 'Yes, delete it!',
                 cancelButtonText: 'No, cancel!',
                 reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        ajax({
-                            url: listUrls.adminDeleteCampaignFromGroup(campaignId),
-                            successCallback: function(resp, el){
-                                el.remove();
-                            }
-                        }, row);
-                    }
-                })
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    ajax({
+                        url: listUrls.adminDeleteCampaignFromGroup(campaignId),
+                        successCallback: function(resp, el){
+                            el.remove();
+                        }
+                    }, row);
+                }
+            });
 
         });
     </script>

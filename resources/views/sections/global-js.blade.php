@@ -16,6 +16,11 @@ var listUrls = {
     @if(isAdmin())
     adminAddedUsersToGroup: listUrlId('{{ route('admin.addedUsersToGroup',':id') }}'),
     adminDeleteCampaignFromGroup: listUrlId('{{ route('admin.deleteCampaignFromGroup',':id') }}'),
+    adminListCreditFromGroup: listUrlId('{{ route('admin.listCreditFromGroup',':id') }}'),
+    adminListCreditFromGroup: listUrlId('{{ route('admin.listCreditFromGroup',':id') }}'),
+    adminDeleteCreditFromGroup: listUrlId('{{ route('admin.deleteCreditFromGroup',':id') }}'),
+    adminInvoicesByUser: listUrlId('{{ route('admin.invoicesByUser',':id') }}'),
+    adminInvoiceUpdate: listUrlId('{{ route('admin.invoices.update',':id') }}'),
     @endif
     @if(isUser())
     getAllCampaignGroupStats: '{{ route('user.getAllCampaignGroupStats') }}',
