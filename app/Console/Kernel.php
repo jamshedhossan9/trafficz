@@ -18,7 +18,7 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')->hourly();
         $campaignService = new CampaignService();
-        $schedule->call($campaignService->getAllCampaignStats())->timezone('America/New_York')->daily()->at('01:00');
+        $schedule->call($campaignService->getAllCampaignStats())->timezone('America/New_York')->daily()->at('01:00')->withoutOverlapping();
     }
 
     /**
