@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\CampaignGroupStatJob;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\CampaignGroup;
@@ -77,7 +78,9 @@ class CampaignService
         $groups = CampaignGroup::all();
         if(!empty($groups)){
             foreach($groups as $group){
-                $this->getAllCampaignGroupStats($group->id);
+                // $this->getAllCampaignGroupStats($group->id);
+                // dispatch job for group stat
+                CampaignGroupStatJob::dispatch($group->id);
             }
         }
         $this->generateInvoice();
