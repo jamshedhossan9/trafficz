@@ -16,7 +16,7 @@ class CreateCreditsTable extends Migration
         Schema::create('credits', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('campaign_group_id');
-            $table->foreign('campaign_group_id')->references('id')->on('campaign_groups');
+            $table->foreign('campaign_group_id')->references('id')->on('campaign_groups')->onDelete('cascade')->onUpdate('cascade');
             $table->date('date');
             $table->double('amount')->default(0);
             $table->boolean('used')->default(0);

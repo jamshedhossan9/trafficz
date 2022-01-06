@@ -16,7 +16,7 @@ class CreateCampaignGroupsTable extends Migration
         Schema::create('campaign_groups', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id')->comment('admin');
-            $table->foreign('user_id')->references('id')->on('users');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
             $table->string('name');
             $table->timestamps();
         });

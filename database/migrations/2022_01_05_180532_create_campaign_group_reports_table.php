@@ -17,8 +17,8 @@ class CreateCampaignGroupReportsTable extends Migration
             $table->id();
             $table->unsignedBigInteger('campaign_group_id');
             $table->unsignedBigInteger('campaign_id');
-            $table->foreign('campaign_group_id')->references('id')->on('campaign_groups');
-            $table->foreign('campaign_id')->references('id')->on('campaigns');
+            $table->foreign('campaign_group_id')->references('id')->on('campaign_groups')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('campaign_id')->references('id')->on('campaigns')->onDelete('cascade')->onUpdate('cascade');
             $table->date('date');
             $table->bigInteger('conversions')->default(0);
             $table->double('cost')->default(0);

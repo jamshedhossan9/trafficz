@@ -17,8 +17,8 @@ class CreateCampaignGroupUsersTable extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id')->comment('user');
             $table->unsignedBigInteger('campaign_group_id');
-            $table->foreign('user_id')->references('id')->on('users');
-            $table->foreign('campaign_group_id')->references('id')->on('campaign_groups');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('campaign_group_id')->references('id')->on('campaign_groups')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
         });
     }

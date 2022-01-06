@@ -17,8 +17,8 @@ class CreateTrackerUsersTable extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id')->comment('admin');
             $table->unsignedBigInteger('tracker_id');
-            $table->foreign('user_id')->references('id')->on('users');
-            $table->foreign('tracker_id')->references('id')->on('trackers');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('tracker_id')->references('id')->on('trackers')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
         });
     }

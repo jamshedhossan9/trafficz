@@ -74,9 +74,11 @@
                                                 <label for="invoice_update_checkbox_{{$invoice->id}}"></label>
                                             </div>
                                         </td>
+                                        @php
+                                            $totalUnpaid += $invoice->total;
+                                        @endphp
                                     @endif
                                     @php
-                                        $totalUnpaid += $invoice->total;
                                         $serial--;
                                     @endphp
                                 </tr>

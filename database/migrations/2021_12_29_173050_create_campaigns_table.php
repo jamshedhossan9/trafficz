@@ -17,8 +17,8 @@ class CreateCampaignsTable extends Migration
             $table->id();
             $table->unsignedBigInteger('campaign_group_id');
             $table->unsignedBigInteger('tracker_auth_id');
-            $table->foreign('campaign_group_id')->references('id')->on('campaign_groups');
-            $table->foreign('tracker_auth_id')->references('id')->on('tracker_auths');
+            $table->foreign('campaign_group_id')->references('id')->on('campaign_groups')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('tracker_auth_id')->references('id')->on('tracker_auths')->onDelete('cascade')->onUpdate('cascade');
             $table->string('camp_id')->comment('Campaign id from tracker');
             $table->string('name')->comment('Alternate campaign name from admin');
             $table->timestamps();

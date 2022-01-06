@@ -17,8 +17,8 @@ class CreateCampaignTagsTable extends Migration
             $table->id();
             $table->unsignedBigInteger('tag_id');
             $table->unsignedBigInteger('campaign_id');
-            $table->foreign('tag_id')->references('id')->on('tags');
-            $table->foreign('campaign_id')->references('id')->on('campaigns');
+            $table->foreign('tag_id')->references('id')->on('tags')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('campaign_id')->references('id')->on('campaigns')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
         });
     }

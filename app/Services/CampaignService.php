@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Jobs\CampaignGroupStatJob;
+use App\Jobs\GenerateInvoiceJob;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\CampaignGroup;
@@ -15,14 +16,14 @@ class CampaignService
 {
     public function __construct()
     {
-        $this->date = date('Y-m-d',strtotime("-1 days"));
+        // $this->date = date('Y-m-d',strtotime("-1 days"));
     }
 
     public function getAllCampaignGroupStats($groupId)
     {
         $groupId = intval($groupId);
-        $dateFrom = $this->date;
-        $dateTo = $this->date;
+        $dateFrom = date('Y-m-d',strtotime("-1 days")); //$this->date;
+        $dateTo = $dateFrom; //$this->date;
 
         $campaignGroup = CampaignGroup::with('campaigns.trackerAuth.trackerUser.tracker')->find($groupId);
         // dd($campaignGroupUsers);
@@ -69,7 +70,6 @@ class CampaignService
                 }
             }
         }
-        dd($log);
 
     }
 
@@ -83,7 +83,8 @@ class CampaignService
                 CampaignGroupStatJob::dispatch($group->id);
             }
         }
-        $this->generateInvoice();
+        // $this->generateInvoice();
+        GenerateInvoiceJob::dispatch();
     }
 
     public function generateInvoice()
@@ -123,47 +124,51 @@ class CampaignService
                 //     $query->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo);
                 // }])->where('user_id', $user->id)->get();
                 // $data[$user->id] = $campaignGroupUsers;
-                $invoiceData = ['amount' => 0, 'credit' => 0];
-                $campaignGroupUsers = CampaignGroupUser::with(['campaignGroup'])->where('user_id', $user->id)->get();
-                $allCreditIds = [];
-                if(!empty($campaignGroupUsers)){
-                    foreach($campaignGroupUsers as $campaignGroupUser){
-                        $campaigns = $campaignGroupUser->campaignGroup->campaigns()->get();
-                        $credits = $campaignGroupUser->campaignGroup->credits()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
-                        if(!empty($credits)){
-                            foreach($credits as $credit){
-                                $invoiceData['credit'] += $credit->amount;
-                                $allCreditIds[] = $credit->id;
+
+                $checkExists = Invoice::where('user_id', $user->id)->where('end_date', $dateTo)->first();
+                if(empty($checkExists)){
+                    $invoiceData = ['amount' => 0, 'credit' => 0];
+                    $campaignGroupUsers = CampaignGroupUser::with(['campaignGroup'])->where('user_id', $user->id)->get();
+                    $allCreditIds = [];
+                    if(!empty($campaignGroupUsers)){
+                        foreach($campaignGroupUsers as $campaignGroupUser){
+                            $campaigns = $campaignGroupUser->campaignGroup->campaigns()->get();
+                            $credits = $campaignGroupUser->campaignGroup->credits()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->where('used', false)->get();
+                            if(!empty($credits)){
+                                foreach($credits as $credit){
+                                    $invoiceData['credit'] += $credit->amount;
+                                    $allCreditIds[] = $credit->id;
+                                }
                             }
-                        }
-                        if(!empty($campaigns)){
-                            foreach($campaigns as $campaign){
-                                $reports = $campaign->reports()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
-                                if(!empty($reports)){
-                                    foreach($reports as $report){
-                                        $invoiceData['amount'] += $report->cost;
+                            if(!empty($campaigns)){
+                                foreach($campaigns as $campaign){
+                                    $reports = $campaign->reports()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
+                                    if(!empty($reports)){
+                                        foreach($reports as $report){
+                                            $invoiceData['amount'] += $report->cost;
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
-                $invoice = new Invoice();
-                $invoice->user_id = $user->id;
-                $invoice->start_date = $dateFrom;
-                $invoice->end_date = $dateTo;
-                $invoice->description = 'Traffic revenue';
-                $invoice->amount = $invoiceData['amount'];
-                $invoice->credit = $invoiceData['credit'];
-                $invoice->total = $invoiceData['credit'] + $invoiceData['amount'];
-                $invoice->save();
-                if(!empty($allCreditIds)){
-                    Credit::whereIn('id', $allCreditIds)->update(['used' => true]);
+                    $invoice = new Invoice();
+                    $invoice->user_id = $user->id;
+                    $invoice->start_date = $dateFrom;
+                    $invoice->end_date = $dateTo;
+                    $invoice->description = 'Traffic revenue';
+                    $invoice->amount = $invoiceData['amount'];
+                    $invoice->credit = $invoiceData['credit'];
+                    $invoice->total = $invoiceData['credit'] + $invoiceData['amount'];
+                    $invoice->save();
+                    if(!empty($allCreditIds)){
+                        Credit::whereIn('id', $allCreditIds)->update(['used' => true]);
+                    }
                 }
             }
         }
-        $data = json_decode(json_encode($data), true);
-        dd($data);
+        // $data = json_decode(json_encode($data), true);
+        // dd($data);
     }
 
 }

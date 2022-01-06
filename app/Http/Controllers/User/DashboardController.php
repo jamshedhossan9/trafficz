@@ -339,6 +339,12 @@ class DashboardController extends Controller
         return $amount;
     }
 
+    public function invoices()
+    {
+        $this->invoices = Invoice::whereUserId($this->user->id)->orderBy('id', 'desc')->get();
+        return view('user.invoice', $this->data);
+    }
+
     public function campaignService()
     {
         $campaignService = new CampaignService();
@@ -351,6 +357,6 @@ class DashboardController extends Controller
         // $users = $roleUsers->users()->get();
         // dd($users);
 
-        $campaignService->generateInvoice();
+        $campaignService->getAllCampaignStats();
     }
 }

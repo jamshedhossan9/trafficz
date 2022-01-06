@@ -11,19 +11,18 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
-class CampaignGroupStatJob implements ShouldQueue
+class GenerateInvoiceJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $groupId;
     /**
      * Create a new job instance.
      *
      * @return void
      */
-    public function __construct($groupId)
+    public function __construct()
     {
-        $this->groupId = $groupId;
+        //
     }
 
     /**
@@ -34,9 +33,9 @@ class CampaignGroupStatJob implements ShouldQueue
     public function handle(CampaignService $campaignService)
     {
         try{
-            $campaignService->getAllCampaignGroupStats($this->groupId);
+            $campaignService->generateInvoice();
         }catch(Exception $e){
-            \Log::info("getAllCampaignGroupStats Job exception: ". json_encode($e->getMessage()));
+            \Log::info("Invoice Job exception: ". ($e->getMessage()));
             //release the job to try again after 10s
             $this->release(10);
         }

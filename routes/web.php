@@ -56,6 +56,7 @@ Route::group(['middleware' => 'auth'], function(){
         Route::resource('dashboard', DashboardController::class);
         Route::post('campaign-group-stats', 'DashboardController@getAllCampaignGroupStats')->name('getAllCampaignGroupStats');
         Route::post('campaign-hourly-stats', 'DashboardController@getCampaignHourlyStats')->name('getCampaignHourlyStats');
+        Route::get('invoices', 'DashboardController@invoices')->name('invoices');
     }); 
     Route::get('campaign-search-stats', [App\Http\Controllers\User\DashboardController::class, 'campaignService'])->name('public.campaingService');
     

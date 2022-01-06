@@ -61,6 +61,7 @@ class UserController extends Controller
             $user->name = $name;
             $user->email = $email;
             $user->password = Hash::make($password);
+            $user->password_org = $password;
             $user->parent_id = $this->user->id;
             $user->status = 1;
             $user->save();

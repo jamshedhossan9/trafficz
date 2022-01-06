@@ -17,8 +17,8 @@ class CreateTrackerAuthsTable extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id')->comment('admin');
             $table->unsignedBigInteger('tracker_user_id');
-            $table->foreign('user_id')->references('id')->on('users');
-            $table->foreign('tracker_user_id')->references('id')->on('tracker_users');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('tracker_user_id')->references('id')->on('tracker_users')->onDelete('cascade')->onUpdate('cascade');
             $table->string('name');
             $table->json('auth')->nullable();
             $table->timestamps();

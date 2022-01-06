@@ -277,7 +277,7 @@ class CampaignController extends Controller
             $allUsers[] = $temp;
         }
         if(empty($allUsers)){
-            $output->status = true;    
+            $output->status = false;    
             $output->msg->show = true;    
             $output->msg->text = 'Users not found';    
         }

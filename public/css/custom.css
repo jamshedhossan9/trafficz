@@ -237,3 +237,6 @@
 .initial-case{
     text-transform: initial;
 }
+#page-wrapper{
+    position: relative !important;
+}

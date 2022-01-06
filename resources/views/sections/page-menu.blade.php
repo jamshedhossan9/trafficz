@@ -35,6 +35,12 @@
                         <span class="hide-menu"> Dashboard </span>
                     </a>
                 </li>    
+                <li>
+                    <a href="{{ route('user.invoices') }}" class="waves-effect {{ menuActive('user.invoices') }}">
+                        <i class="ti-files"></i> 
+                        <span class="hide-menu"> Invoices </span>
+                    </a>
+                </li>    
             @endif
         </ul>
     </div>
