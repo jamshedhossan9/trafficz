@@ -11,6 +11,9 @@ use App\Models\CampaignGroupReport;
 use App\Models\CampaignGroupUser;
 use App\Models\Invoice;
 use App\Models\Credit;
+use Illuminate\Bus\Batch;
+use Illuminate\Support\Facades\Bus;
+use Throwable;
 
 class CampaignService
 {
@@ -76,20 +79,23 @@ class CampaignService
     public function getAllCampaignStats()
     {
         $groups = CampaignGroup::all();
+        $campaignGroupStatJobs = [];
         if(!empty($groups)){
             foreach($groups as $group){
                 // $this->getAllCampaignGroupStats($group->id);
                 // dispatch job for group stat
-                CampaignGroupStatJob::dispatch($group->id);
+                // CampaignGroupStatJob::dispatch($group->id);
+                $campaignGroupStatJobs[] = new CampaignGroupStatJob($group->id);
             }
+
+            //dispatch all jobs in the batch
+            $this->dipatchBatchJobs($campaignGroupStatJobs);
         }
-        // $this->generateInvoice();
-        GenerateInvoiceJob::dispatch();
+        return;
     }
 
     public function generateInvoice()
     {
-        
         $days = array('sunday', 'monday', 'tuesday', 'wednesday','thursday','friday', 'saturday');
 		$currentDate = date('Y-m-d');
 		$dayNo = date('w', strtotime($currentDate));
@@ -171,4 +177,25 @@ class CampaignService
         // dd($data);
     }
 
+    /**
+     * dipatchBatchJobs
+     * dispatching all jobs in a batch using Bus
+     */
+    public function dipatchBatchJobs($jobs = []){
+        if(!empty($jobs)){
+            $batch = Bus::batch($jobs)->then( function (Batch $bat){
+                // All jobs completed successfully...
+                GenerateInvoiceJob::dispatch();
+            })->catch(function (Batch $batch, Throwable $e) {
+                // First batch job failure detected...
+                \Log::info("Batch failed: ". json_encode($batch));
+            })->finally(function (Batch $batch) {
+                // The batch has finished executing...
+            })->name('Campaign Group Stat')->dispatch();
+
+            return $batch->id;
+        }
+
+        return;
+    }
 }
