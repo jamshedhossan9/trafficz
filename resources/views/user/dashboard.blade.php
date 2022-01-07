@@ -401,8 +401,9 @@
                 successCallback: campaignReportSuccessCallback
             },{groupSelection: 'all'});
 
-            var start = moment();
-            var end = moment();
+            var serverTime = moment().tz("America/New_York");
+            var start = serverTime;
+            var end = serverTime;
             var daterangeOptions = {
                 startDate: start,
                 endDate: end,
@@ -411,12 +412,12 @@
                 },
                 autoApply: true,
                 ranges: {
-                'Today': [moment(), moment()],
-                'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
-                'Last 7 Days': [moment().subtract(6, 'days'), moment()],
-                'Last 30 Days': [moment().subtract(29, 'days'), moment()],
-                'This Month': [moment().startOf('month'), moment().endOf('month')],
-                'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                'Today': [serverTime, serverTime],
+                'Yesterday': [serverTime.subtract(1, 'days'), serverTime.subtract(1, 'days')],
+                'Last 7 Days': [serverTime.subtract(6, 'days'), serverTime],
+                'Last 30 Days': [serverTime.subtract(29, 'days'), serverTime],
+                'This Month': [serverTime.startOf('month'), serverTime.endOf('month')],
+                'Last Month': [serverTime.subtract(1, 'month').startOf('month'), serverTime.subtract(1, 'month').endOf('month')]
                 }
             };
             
