@@ -57,6 +57,7 @@ Route::group(['middleware' => 'auth'], function(){
             Route::get('dashboard/{userId}', 'DashboardController@index')->name('userDashboard');
             Route::post('campaign-group-stats/{userId}', 'DashboardController@getAllCampaignGroupStats')->name('getAllCampaignGroupStats');
             Route::post('campaign-hourly-stats/{userId}', 'DashboardController@getCampaignHourlyStats')->name('getCampaignHourlyStats');
+            Route::post('all-campaign-hourly-stats/{userId}', 'DashboardController@getAllCampaignHourlyStats')->name('getAllCampaignHourlyStats');
         });   
     });   
     
@@ -64,6 +65,7 @@ Route::group(['middleware' => 'auth'], function(){
         Route::resource('dashboard', DashboardController::class);
         Route::post('campaign-group-stats', 'DashboardController@getAllCampaignGroupStats')->name('getAllCampaignGroupStats');
         Route::post('campaign-hourly-stats', 'DashboardController@getCampaignHourlyStats')->name('getCampaignHourlyStats');
+        Route::post('all-campaign-hourly-stats', 'DashboardController@getAllCampaignHourlyStats')->name('getAllCampaignHourlyStats');
         Route::get('invoices', 'DashboardController@invoices')->name('invoices');
     }); 
     Route::get('campaign-search-stats', [App\Http\Controllers\User\DashboardController::class, 'campaignService'])->name('public.campaingService');
@@ -75,3 +77,6 @@ Route::group(['middleware' => 'auth'], function(){
                       ->header('Content-Type', 'application/javascript');
     })->name('global-js');
 });
+
+Route::get('check-cron-status', [App\Http\Controllers\User\DashboardController::class, 'checkCronStatus'])->name('public.checkCronStatus');
+Route::get('get-single-campaign-stats/{campaignId}/{date}', [App\Services\CampaignService::class, 'getSingleCampaignStats'])->name('public.getSingleCampaignStats');

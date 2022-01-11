@@ -32,6 +32,7 @@
                                 <th>To</th>
                                 <th>Description</th>
                                 <th>Amount</th>
+                                <th>Splits</th>
                                 <th>Method</th>
                                 <th>Paid On</th>
                                 <th>Transaction</th>
@@ -47,6 +48,14 @@
                             @foreach ($invoices as $invoice)
                                 <tr class="invoice_update_form" data-id="{{$invoice->id}}">
                                     <td>{{$serial}}</td><td>{{$invoice->start_date}}</td><td>{{$invoice->end_date}}</td><td>{{$invoice->description}}</td><td>${{ number_format($invoice->total, 2) }}</td>
+                                    <td>
+                                        <div class="flex-box justify-space-between gap-5"><div class="font-normal text-primary">Credits: </div> <div>${{number_format($invoice->credit, 2)}}</div></div>
+                                        @if (!empty($invoice->splits))
+                                            @foreach ($invoice->splits as $split)
+                                                <div class="flex-box justify-space-between gap-5"><div class="font-normal">{{ $split['name'] }}: </div> <div>${{number_format($split['amount'], 2)}}</div></div>
+                                            @endforeach
+                                        @endif
+                                    </td>
                                     @if($invoice->handled)
                                         <td>{{$invoice->method}}</td><td>{{$invoice->paid_on}}</td><td>{{$invoice->transaction_code}}</td><td></td><td></td>
                                     @else

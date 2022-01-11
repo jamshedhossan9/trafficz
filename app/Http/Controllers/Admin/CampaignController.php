@@ -13,6 +13,7 @@ use App\Models\Tag;
 use App\Models\CampaignTag;
 use App\Models\Credit;
 use Illuminate\Support\Str;
+use App\Jobs\CampaignStatJob;
 
 class CampaignController extends Controller
 {
@@ -200,6 +201,14 @@ class CampaignController extends Controller
             $campaignSave = $campaign->save();
             if($campaignDbId){
                 CampaignTag::where('campaign_id', $campaignDbId)->delete();
+            }
+            else{
+                $pullDate = date('Y-m-d', strtotime('-1 days'));
+                for($i = 0; $i < 7; $i++){
+                    CampaignStatJob::dispatch($campaign->id, $pullDate);
+                    $pullDate = date('Y-m-d', strtotime('-1 days', strtotime($pullDate)));
+                }
+                
             }
             if($campaignSave){
                 if($request->has('campaign_tag_id')){

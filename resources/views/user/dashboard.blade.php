@@ -117,6 +117,14 @@
             top: 57px;
             z-index: 2;
         }
+        .all-campaign-hourly-stat-btn:hover,
+        .all-campaign-hourly-stat-btn:active,
+        .all-campaign-hourly-stat-btn:focus{
+            opacity: 1 !important;
+            padding-left: 0;
+            padding-right: 31px;
+            margin-left: -7px;
+        }
     </style>
 @endpush
 
@@ -128,6 +136,9 @@
             </div>
             <div class="flex-none">
                 <button class="btn btn-info submit_btn" type="submit">Search</button>
+            </div>
+            <div class="flex-none">
+                <button class="btn btn-info btn-outline all-campaign-hourly-stat-btn" type="button">By Hour</button>
             </div>
         </form>
     </li>
@@ -183,11 +194,42 @@
     </div>
 
     <div class="flex-box flex-column gap-20">
+        <div class="panel panel-default all-campaign-hourly-stats-panel m-0 hidden">
+            <div class="panel-heading flex-box gap-10 align-center"> 
+                <div>
+                    <a href="#" data-perform="panel-collapse"><i class="ti-minus m-0"></i></a>
+                </div>
+                <div class="panel-title flex-grow">
+                    Overall Hourly Stats
+                </div>
+                <div class="flex-none">
+                    <a href="#" class="panel-close"><i class="ti-close"></i></a>
+                </div>
+            </div>
+            <div class="panel-wrapper collapse in" aria-expanded="true">
+                <div class="panel-body">
+                    <table class="table table-bordered all-campaign-hourly-stats-table">
+                        <thead>
+                            <tr>
+                                <th>Hour</th>
+                                <th>Clicks</th>
+                                <th>Revenue</th>
+                                <th>EPC</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         @foreach ($campaignGroupUsers as $campaignGroupUser)
             @php
                 $group = $campaignGroupUser->campaignGroup;
             @endphp
-            <div class="panel panel-default campaign-group-panel" data-group-id="{{ $group->id }}">
+            <div class="panel panel-default campaign-group-panel m-0" data-group-id="{{ $group->id }}">
                 <div class="panel-heading flex-box gap-10 align-center"> 
                     <div>
                         <a href="#" data-perform="panel-collapse"><i class="ti-minus m-0"></i></a>
@@ -521,7 +563,7 @@
                                 for(var item of resp.data.hourly_data){
                                     html += `
                                         <tr>
-                                            <td>`+item.name+`</td>
+                                            <td class="font-normal">`+item.name+`</td>
                                             <td>`+item.clicks+`</td>
                                             <td>$`+item.revenue+`</td>
                                             <td>$`+item.epc+`</td>
@@ -584,6 +626,78 @@
                 }
                 
                 
+            });
+
+            $(document).on('click', '.all-campaign-hourly-stat-btn', function(e){
+                e.preventDefault();
+                var el = $(this);
+                var form = $('.campaign-group-filter-form.for-all-group');
+                var date = form.find('input[name="date"]').val();
+                loadBtn(el);
+                var dateArray = date.split('-');
+                if(dateArray.length == 2){
+                    var from = dateArray[0].trim();
+                    var to = dateArray[1].trim();
+                    ajax({
+                        blockUi: false,
+                        @if (isAdmin())
+                            url: listUrls.adminGetAllCampaignHourlyStats({{$user->id}}),     
+                        @else
+                            url: listUrls.getAllCampaignHourlyStats,
+                        @endif
+                        type: 'POST',
+                        data: {
+                            _token: csrfToken,
+                            dateFrom: from,
+                            dateTo: to,
+                        },
+                        _success: function(resp, prop){
+                            unloadBtn(prop.el);
+                            if(resp.data != null && resp.data.hourly_data != null){
+                                var hourlyData = resp.data.hourly_data;
+                                var panel = $('.all-campaign-hourly-stats-panel');
+                                var table = $('.all-campaign-hourly-stats-table');
+
+                                var html = ``;
+                                for(var x in hourlyData){
+                                    if(hourlyData.hasOwnProperty(x)){
+                                        var hour = _parseInt(x);
+                                        var name = hour+':00 - '+(hour+1)+':00';
+                                        html += `
+                                            <tr>
+                                                <td class="font-normal">`+name+`</td>
+                                                <td>`+hourlyData[x].clicks+`</td>
+                                                <td>$`+hourlyData[x].revenue+`</td>
+                                                <td>$`+hourlyData[x].epc+`</td>
+                                            </tr>
+                                        `;
+                                    }
+                                }
+                                table.find('tbody').html(html);
+                                panel.removeClass('hidden');
+                                panel.find('>.panel-heading [data-perform="panel-collapse"] i').removeClass('ti-plus').addClass('ti-minus');
+                                panel.find('>.panel-wrapper').addClass('in').slideDown();
+                            }
+                        },
+                        _error: function(resp, prop){
+                            unloadBtn(prop.el);
+                        },
+                    }, {el:el});
+                }
+                else{
+                    unloadBtn(el);
+                }
+                
+                    
+                
+                
+                
+            });
+
+            $(document).on('click', '.panel>.panel-heading .panel-close', function(e){
+                e.preventDefault();
+                var el = $(this);
+                el.closest('.panel').addClass('hidden');
             });
         });
     </script>

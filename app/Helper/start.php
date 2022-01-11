@@ -441,6 +441,7 @@ function getBinomCampaignStatByHour($auth, $from, $to, $id){
             $status = 'error';
         }
         if(is_array($response) && !empty($response) && $status == 'success'){
+            // dd($response);
             return $response;
         }
     }

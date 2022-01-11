@@ -12,6 +12,7 @@ use App\Services\CampaignService;
 use App\Models\Role;
 use App\Models\Invoice;
 use App\Models\User;
+use App\Models\MyLog;
 
 class DashboardController extends Controller
 {
@@ -346,8 +347,116 @@ class DashboardController extends Controller
             }
         }
         else{
+            $output->msg->show = true;
             $output->msg->text = 'Campaign not found';
         }
+        return response()->json($output);
+    }
+    
+    public function getAllCampaignHourlyStats(Request $request, $userId = 0)
+    {
+        $output = $this->ajaxRes();
+
+        if(isAdmin()){
+            if($userId != 0){
+                $user = User::whereId($userId)->whereParentId($this->user->id)->first();
+                if(!empty($user)){
+                    $this->user = $user;
+                }
+                else{
+                    abort(403);    
+                }
+            }
+            else{
+                abort(403);
+            }
+        }
+
+        $dateFrom = date('Y-m-d');
+        $dateTo = date('Y-m-d');
+
+        if($request->has('dateFrom') && $request->has('dateTo')){
+            $dateFrom = $request->dateFrom;
+            $dateFrom = date('Y-m-d', strtotime($dateFrom));
+            $dateTo = $request->dateTo;
+            $dateTo = date('Y-m-d', strtotime($dateTo));
+        }
+        $campaignGroupUsers = CampaignGroupUser::where('user_id', $this->user->id)->with('campaignGroup')->orderBy('id', 'desc')->get();
+        $hourlyData = [];
+        $tempHourlyData = [];
+        for($i = 0; $i < 24; $i++){
+            $tempHourlyData[$i] = [
+                'clicks' => 0,
+                'revenue' => 0,
+                'epc' => 0,
+            ];
+        }
+        if(!empty($campaignGroupUsers)){
+            foreach($campaignGroupUsers as $campaignGroupUser){
+                if(!empty($campaignGroupUser->campaignGroup)){
+                    $campaigns = $campaignGroupUser->campaignGroup->campaigns()->with('trackerAuth.trackerUser.tracker')->get();
+                    if(!empty($campaigns)){
+                        foreach($campaigns as $campaign){
+                            $tracker = $campaign->trackerAuth->trackerUser->tracker->slug;
+                            $result = null;
+                            if($tracker == 'voluum'){
+                                $result = getVoluumCampaignStatByHour($campaign->trackerAuth->auth, $dateFrom, $dateTo, $campaign->camp_id);
+                                if(!empty($result) && !empty($result['rows'])){
+                                    foreach($result['rows'] as $item){
+                                        $hour = intval($item['hourOfDay']);
+                                        // $temp = [
+                                        //     'clicks' => floatval($item['visits']),
+                                        //     'revenue' => floatval($item['cost']),
+                                        //     'epc' => 0,
+                                        // ];
+                                        // $tempHourlyData[$hour][] = $temp;
+                                        $tempHourlyData[$hour]['clicks'] += floatval($item['visits']);
+                                        $tempHourlyData[$hour]['revenue'] += floatval($item['cost']);
+                                    }
+                                }
+                            }
+                            elseif($tracker == 'binom'){
+                                $result = getBinomCampaignStatByHour($campaign->trackerAuth->auth, $dateFrom, $dateTo, $campaign->camp_id);
+                                if(!empty($result)){
+                                    foreach($result as $item){
+                                        if($item['level'] == 1){
+                                            $hour = intval($item['name']);
+                                            // $visits = floatval($item['clicks']);
+                                            // $cost = floatval($item['cost']);
+                                            // $temp = [
+                                            //     'clicks' => $visits,
+                                            //     'revenue' => $cost,
+                                            //     'epc' => 0,
+                                            // ];
+                                            // $tempHourlyData[$hour][] = $temp;
+                                            $tempHourlyData[$hour]['clicks'] += floatval($item['clicks']);
+                                            $tempHourlyData[$hour]['revenue'] += floatval($item['cost']);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            foreach($tempHourlyData as $key => $item){
+                if($item['clicks']){
+                    $item['epc'] = $item['revenue'] / $item['clicks'];
+                }
+                $item['clicks'] = number_format($item['clicks']);
+                $item['revenue'] = number_format($item['revenue'], 2);
+                $item['epc'] = number_format($item['epc'], 2);
+                $tempHourlyData[$key] = $item;
+            }
+            $output->status = true;
+            $output->data['hourly_data'] = $tempHourlyData;
+            
+        }
+        else{
+            $output->msg->show = true;
+            $output->msg->text = 'Campaign not found';
+        }
+        
         return response()->json($output);
     }
 
@@ -532,5 +641,13 @@ class DashboardController extends Controller
         dd($reports, $totals);
         */
         $campaignService->getAllCampaignStats();
+    }
+
+    public function checkCronStatus()
+    {
+        $data = new MyLog();
+        $data->type = "daily 1am cron check";
+        $data->data = ['date' => date("Y-m-d H:i:s")];
+        $data->save();
     }
 }

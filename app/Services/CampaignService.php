@@ -6,9 +6,11 @@ use App\Jobs\CampaignGroupStatJob;
 use App\Jobs\GenerateInvoiceJob;
 use App\Models\User;
 use App\Models\Role;
+use App\Models\Campaign;
 use App\Models\CampaignGroup;
 use App\Models\CampaignGroupReport;
 use App\Models\CampaignGroupUser;
+use App\Models\CampaignTag;
 use App\Models\Invoice;
 use App\Models\Credit;
 use Illuminate\Bus\Batch;
@@ -124,6 +126,7 @@ class CampaignService
         $roleUsers = Role::find(3);
         $users = $roleUsers->users()->get();
         $data = [];
+        $splitByTrackers = [];
         
         if(!empty($users)){
             foreach($users as $user){
@@ -141,7 +144,7 @@ class CampaignService
                     $allCreditIds = [];
                     if(!empty($campaignGroupUsers)){
                         foreach($campaignGroupUsers as $campaignGroupUser){
-                            $campaigns = $campaignGroupUser->campaignGroup->campaigns()->get();
+                            $campaigns = $campaignGroupUser->campaignGroup->campaigns()->with('trackerAuth')->get();
                             $credits = $campaignGroupUser->campaignGroup->credits()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
                             if(!empty($credits)){
                                 foreach($credits as $credit){
@@ -153,8 +156,15 @@ class CampaignService
                                 foreach($campaigns as $campaign){
                                     $reports = $campaign->reports()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
                                     if(!empty($reports)){
+                                        if(empty($splitByTrackers[$campaign->tracker_auth_id])){
+                                            $splitByTrackers[$campaign->tracker_auth_id] = [
+                                                'name' => $campaign->trackerAuth->name,
+                                                'amount' => 0,
+                                            ];
+                                        }
                                         foreach($reports as $report){
                                             $invoiceData['amount'] += $report->cost;
+                                            $splitByTrackers[$campaign->tracker_auth_id]['amount'] += $report->cost;
                                         }
                                     }
                                 }
@@ -169,6 +179,7 @@ class CampaignService
                     $invoice->amount = $invoiceData['amount'];
                     $invoice->credit = $invoiceData['credit'];
                     $invoice->total = $invoiceData['credit'] + $invoiceData['amount'];
+                    $invoice->splits = $splitByTrackers;
                     $invoice->save();
                     if(!empty($allCreditIds)){
                         Credit::whereIn('id', $allCreditIds)->update(['used' => true]);
@@ -178,6 +189,47 @@ class CampaignService
         }
         // $data = json_decode(json_encode($data), true);
         // dd($data);
+    }
+
+    public function getSingleCampaignStats($campaignId, $date)
+    {
+        $campaignId = intval($campaignId);
+        $date = date('Y-m-d', strtotime($date));
+        $dateFrom = $date;
+        $dateTo = $date;
+        $campaign = Campaign::with('trackerAuth.trackerUser.tracker')->find($campaignId);
+        if(!empty($campaign)){
+            $checkExists = $campaign->reportByDate($dateFrom)->first();
+            if(empty($checkExists)){
+                $tracker = $campaign->trackerAuth->trackerUser->tracker->slug;
+                $auth = $campaign->trackerAuth->auth;
+                
+                $stats = getTrackerCampaignStat($tracker, $auth, $dateFrom, $dateTo, $campaign->camp_id);
+                $report = new CampaignGroupReport();
+                $report->campaign_group_id = $campaign->campaign_group_id ;
+                $report->campaign_id = $campaign->id;
+                $report->date = $dateFrom;
+                $report->conversions = $stats['conversions'];
+                $report->cost = $stats['cost'];
+                $report->revenue = $stats['revenue'];
+                $report->profit = $stats['profit'];
+                $report->impressions = $stats['impressions'];
+                $report->visits = $stats['visits'];
+                $report->clicks = $stats['clicks'];
+                $report->epc = $stats['epc'];
+                $report->cpc = $stats['cpc'];
+                $report->epv = $stats['epv'];
+                $report->cpv = $stats['cpv'];
+                $report->roi = $stats['roi'];
+                $report->ctr = $stats['ctr'];
+                $report->ictr = $stats['ictr'];
+                $report->cr = $stats['cr'];
+
+                $report->save();
+
+                $log['campaigns'][$campaign->id][$dateFrom]['new'] = $stats;
+            }
+        }
     }
 
     /**
