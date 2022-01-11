@@ -42,6 +42,15 @@
                     </a>
                 </li>    
             @endif
+
+            @if(!empty($__env->yieldContent('page-menu-right')))
+                @yield('page-menu-right')
+                {{-- 
+                    <li class="menu-right"></li> // class "menu-right" in only first <li>
+                    <li class=""></li>
+                    <li class=""></li>
+                    --}}
+            @endif
         </ul>
     </div>
 </div>

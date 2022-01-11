@@ -19,16 +19,17 @@
             display: block;
             background: #aaa;
             border-radius: 3px;
-            padding-top: 35%;
+            /* padding-top: 35%; */
+            height: 100%;
         }
         .dashboard-stat .chart-svg-wrapper{
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        right: 0;
-        border-radius: 3px;
-        overflow: hidden;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            border-radius: 3px;
+            overflow: hidden;
         }
         .dashboard-stat .chart-svg-wrapper .chart-svg{
             width: 100%;
@@ -55,12 +56,20 @@
         }
 
         .dashboard-stat .stat{
-            position:absolute;
-            top:0; left:0; bottom:0; right:0;
+            position: relative;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
             z-index: 2;
             padding: 15px;
             /* color: #fff; */
             color: #f1f4f6;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            justify-content: space-between;
+            height: 100%;
         }
         .dashboard-stat .stat .count{
             font-size: 190%;
@@ -69,7 +78,7 @@
         }
         .dashboard-stat .stat .text{
             font-size: 120%;
-            margin-top: 5px;
+            /* margin-top: 5px; */
             text-shadow: 1px 1px 2px rgb(0 0 0 / 70%);
         }
         .campaign-group-panel .panel-heading{
@@ -111,6 +120,19 @@
     </style>
 @endpush
 
+@section('page-menu-right')
+    <li class="menu-right">
+        <form class="filter flex-box align-center campaign-group-filter-form for-all-group page-menu-search">
+            <div class="flex-grow date relative">
+                <input type="text" class="date_range_picker form-control" name="date">
+            </div>
+            <div class="flex-none">
+                <button class="btn btn-info submit_btn" type="submit">Search</button>
+            </div>
+        </form>
+    </li>
+@endsection
+
 @section('content')
     <div class="flex-box gap-30 dashboard-stats-area flex-nowrap justify-center">
         <div class="col">
@@ -136,7 +158,7 @@
             </div>
         </div>
         <div class="col">
-            <div class="dashboard-stat dashboard-stat-3">
+            <div class="dashboard-stat dashboard-stat-2">
                 <div class="chart-svg-wrapper">
                     <img class="chart-svg" src="{{asset('img/chart-svg/line-chart-smooth-white.svg')}}">
                 </div>
@@ -152,7 +174,7 @@
                     <img class="chart-svg" src="{{asset('img/chart-svg/bar-chart-white.svg')}}">
                 </div>
                 <div class="stat">
-                    <div class="count total_pending_amount">0</div>
+                    <div class="count total_pending_amount" data-amount="{{$pendingInvoiceAmount['amount']}}">${{ number_format($pendingInvoiceAmount['amount'], 2) }}</div>
                     <div class="text">Pending Amount</div>
                 </div>
             </div>
@@ -173,25 +195,29 @@
                     <div class="panel-title flex-grow">
                         {{ $group->name }}
                     </div>
-                    <form class="filter flex-box gap-5 align-center campaign-group-filter-form">
-                        <div class="flex-none tag_select">
-                            <select name="tags[]" class="default-selectpicker" multiple title="Select Tags">
+
+                    @php
+                        $tagUniqueByCampaign = [];
+                    @endphp
+                    @foreach ($group->campaigns as $campaign)
+                        @foreach ($campaign->tags as $tag)
+                            @if(empty($tagUniqueByCampaign[$tag->id]))
                                 @php
-                                    $tagUniqueByCampaign = [];
+                                    $tagUniqueByCampaign[$tag->id] = $tag;
                                 @endphp
-                                @foreach ($group->campaigns as $campaign)
-                                    @foreach ($campaign->tags as $tag)
-                                        @if(empty($tagUniqueByCampaign[$tag->id]))
-                                            @php
-                                                $tagUniqueByCampaign[$tag->id] = true;
-                                            @endphp
-                                            <option value="{{$tag->id}}">{{$tag->name}}</option>
-                                        @endif
-                                    @endforeach
+                            @endif
+                        @endforeach
+                    @endforeach
+
+                    <form class="filter flex-box align-center campaign-group-filter-form for-one-group @if(empty($tagUniqueByCampaign)) hidden  @endif">
+                        <div class="flex-none tag_select">
+                            <select name="tags[]" class="default-selectpicker" multiple title="Select Tags">            
+                                @foreach ($tagUniqueByCampaign as $tag)
+                                    <option value="{{$tag->id}}">{{$tag->name}}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="flex-none date">
+                        <div class="flex-none date hidden">
                             <input type="text" class="date_range_picker form-control" name="date">
                         </div>
                         <div class="flex-none">
@@ -227,11 +253,11 @@
 
 @push('js')
 
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.33/moment-timezone-with-data.min.js"></script>
+    
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     
     <script>
+        
         var updatedPendingInvoiceAmount = false;
         formSubmission['campaign-group-add-campaign-success'] = function(response, form){
             var data = response.data;
@@ -327,6 +353,12 @@
                 console.log(resp);
                 if(typeof el.form !== "undefined"){
                     el.form.find('.submit_btn').find('.loading-btn').remove();
+                    if(el.form.hasClass('for-all-group')){
+                        var dates = el.form.find('[name="date"]').val();
+                        var singleForms = $('.campaign-group-filter-form.for-one-group');
+                        singleForms.find('[name="date"]').val(dates);
+                        singleForms.find('select[name="tags[]"]').val([]).change();
+                    }
                 }
                 if(typeof resp !== "undefined" && resp.data != null && resp.data.groupStats != null){
                     var groupStats = resp.data.groupStats;
@@ -386,13 +418,24 @@
                             $('.dashboard-stats-area .total_click_stat').text(allTotals.clicks);
                             $('.dashboard-stats-area .total_revenue_stat').text('$'+allTotals.revenue);
                             $('.dashboard-stats-area .total_epc_stat').text('$'+allTotals.epc);
-                            $('.dashboard-stats-area .total_pending_amount').text('$'+resp.data.pending_amount);
+                            // $('.dashboard-stats-area .total_pending_amount').text('$'+resp.data.pending_amount);
+                        }
+                        if(resp.data.today_amount != null){
+                            var oldAmount = $('.dashboard-stats-area .total_pending_amount').attr('data-amount');
+                            oldAmount = _parseFloat(oldAmount);
+                            var todayAmount = resp.data.today_amount;
+                            todayAmount = _parseFloat(todayAmount);
+                            $('.dashboard-stats-area .total_pending_amount').text(globalNumberFormatter.USD.format(oldAmount + todayAmount));
                         }
                     }
                 }
             }
             ajax({
-                url: listUrls.getAllCampaignGroupStats,
+                @if (isAdmin())
+                    url: listUrls.adminGetAllCampaignGroupStats({{$user->id}}),
+                @else
+                    url: listUrls.getAllCampaignGroupStats,
+                @endif
                 type: 'POST',
                 data: {
                     _token: csrfToken,
@@ -401,9 +444,8 @@
                 successCallback: campaignReportSuccessCallback
             },{groupSelection: 'all'});
 
-            var serverTime = moment().tz("America/New_York");
-            var start = serverTime;
-            var end = serverTime;
+            var start = moment();
+            var end = moment();
             var daterangeOptions = {
                 startDate: start,
                 endDate: end,
@@ -412,23 +454,30 @@
                 },
                 autoApply: true,
                 ranges: {
-                'Today': [serverTime, serverTime],
-                'Yesterday': [serverTime.subtract(1, 'days'), serverTime.subtract(1, 'days')],
-                'Last 7 Days': [serverTime.subtract(6, 'days'), serverTime],
-                'Last 30 Days': [serverTime.subtract(29, 'days'), serverTime],
-                'This Month': [serverTime.startOf('month'), serverTime.endOf('month')],
-                'Last Month': [serverTime.subtract(1, 'month').startOf('month'), serverTime.subtract(1, 'month').endOf('month')]
+                'Today': [moment(), moment()],
+                'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+                'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+                'This Month': [moment().startOf('month'), moment().endOf('month')],
+                'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
                 }
             };
             
             $('.date_range_picker').daterangepicker(daterangeOptions);
+
+            $('.campaign-group-filter-form.for-all-group .date_range_picker').on('change', function(){
+                var el = $(this);
+                var singleForms = $('.campaign-group-filter-form.for-one-group');
+                    singleForms.find('[name="date"]').val(el.val());
+            });
 
             $(document).on('submit', '.campaign-group-filter-form', function(e){
                 e.preventDefault();
                 var form = $(this);
                 var tags = form.find('select[name="tags[]"]').val();
                 var date = form.find('input[name="date"]').val();
-                var groupId = form.find('input[name="group_id"]').val();
+                var groupDom = form.find('input[name="group_id"]');
+                var groupId = groupDom.length ? form.find('input[name="group_id"]').val() : 'all';
                 console.log(tags, date, groupId);
                 var dateArray = date.split('-');
                 if(dateArray.length == 2){
@@ -438,7 +487,11 @@
                     form.find('.submit_btn').prepend('<span class="loading-btn fa fa-spin fa-circle-o-notch m-r-5"></span>');
                     ajax({
                         blockUi: false,
-                        url: listUrls.getAllCampaignGroupStats,
+                        @if (isAdmin())
+                            url: listUrls.adminGetAllCampaignGroupStats({{$user->id}}),     
+                        @else
+                            url: listUrls.getAllCampaignGroupStats,
+                        @endif
                         type: 'POST',
                         data: {
                             _token: csrfToken,
@@ -448,7 +501,7 @@
                             tags: tags
                         },
                         successCallback: campaignReportSuccessCallback
-                    }, {groupSelection: 'single', form: form});
+                    }, {groupSelection: groupId, form: form});
                 }
             });
             
@@ -511,7 +564,11 @@
                             var to = dateArray[1].trim();
                             ajax({
                                 blockUi: true,
-                                url: listUrls.getCampaignHourlyStats,
+                                @if (isAdmin())
+                                    url: listUrls.adminGetCampaignHourlyStats({{$user->id}}),     
+                                @else
+                                    url: listUrls.getCampaignHourlyStats,
+                                @endif
                                 type: 'POST',
                                 data: {
                                     _token: csrfToken,

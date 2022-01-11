@@ -88,8 +88,11 @@ class CampaignService
                 $campaignGroupStatJobs[] = new CampaignGroupStatJob($group->id);
             }
 
+
+            // $this->generateInvoice();
             //dispatch all jobs in the batch
             $this->dipatchBatchJobs($campaignGroupStatJobs);
+            
         }
         return;
     }
@@ -139,7 +142,7 @@ class CampaignService
                     if(!empty($campaignGroupUsers)){
                         foreach($campaignGroupUsers as $campaignGroupUser){
                             $campaigns = $campaignGroupUser->campaignGroup->campaigns()->get();
-                            $credits = $campaignGroupUser->campaignGroup->credits()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->where('used', false)->get();
+                            $credits = $campaignGroupUser->campaignGroup->credits()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
                             if(!empty($credits)){
                                 foreach($credits as $credit){
                                     $invoiceData['credit'] += $credit->amount;

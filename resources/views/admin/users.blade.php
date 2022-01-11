@@ -21,7 +21,10 @@
                             <td>{{ $item->name }}</td>
                             <td>{{ $item->email }}</td>
                             <td>
-                                <a href="{{ route('admin.invoicesByUser', $item->id) }}" class="btn btn-info">Invoices</a>
+                                <div class="flex-box gap-5 align-center">
+                                <a href="{{ route('admin.invoicesByUser', $item->id) }}" class="btn btn-info btn-sm">Invoices</a>
+                                <a href="{{ route('admin.userDashboard', $item->id) }}" class="btn btn-primary btn-sm">Stats</a>
+                                </div>
                             </td>
                         </tr>
                     @endforeach
@@ -89,7 +92,10 @@
                             <td>`+user.name+`</td>
                             <td>`+user.email+`</td>
                             <td>
+                                <div class="flex-box gap-5 align-center">
                                 <a href="`+(listUrls.adminInvoicesByUser(user.id))+`" class="btn btn-info">Invoices</a>
+                                <a href="`+(listUrls.adminSubuserDashboard(user.id))+`" class="btn btn-primary">Stats</a>
+                                </div>
                             </td>
                         </tr>
                     `;

@@ -47,7 +47,7 @@
             <ul class="nav navbar-top-links navbar-right pull-right">
                 <li class="dropdown"> 
                     <a class="dropdown-toggle profile-pic" data-toggle="dropdown" href="#"> 
-                        <b class="hidden-xs">{{ $user->name }}</b> 
+                        <b class="">{{ $user->name }}</b> 
                     </a>
                     <ul class="dropdown-menu dropdown-user animated flipInY">
                         {{-- <li><a href="#"><i class="ti-settings"></i> Account Setting</a></li> --}}
@@ -108,6 +108,11 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.3.2/dist/sweetalert2.min.js"></script>
 <script src="{{asset('plugins/bower_components/json-viewer/jquery.json-viewer.js')}}"></script>
 <script type="text/javascript" src="{{asset('plugins/bower_components/bootstrap-select/bootstrap-select.min.js')}}"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.33/moment-timezone-with-data.min.js"></script>
+<script>
+    moment.tz.setDefault("America/New_York");
+</script>
 <script src="{{asset('js/custom.js')}}{{version()}}"></script>
 @stack('js')
 </body>

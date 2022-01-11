@@ -193,6 +193,7 @@ function trackerCampaignStatMerge($data, $tracker){
 
 function trackerCampaignStatSum($data = []){
     $output = trackerCampaignStatDefaults();
+    if(empty($data)) $data = [];
     foreach($data as $item){
         foreach ($item as $key2 => $value2) {
             if(isset($output[$key2])){
@@ -303,8 +304,8 @@ function getVoluumCampaignStat($auth, $from, $to, $id){
         "roi" => 0,
         "rpm" => 0,
         "uniqueClicks" => 0,
-        "uniqueVisits" => 90,
-        "visits" => 125,
+        "uniqueVisits" => 0,
+        "visits" => 0,
     ];
     $offset = 0;
     $limit = 1000;
@@ -389,10 +390,12 @@ function getBinomCampaignStat($auth, $from, $to, $id){
         }
         if(is_array($response) && !empty($response) && $status == 'success'){
             foreach ($response as $key => $value) {
-                if($value['level'] == 1){
-                    foreach ($value as $key2 => $value2) {
-                        if(isset($stats[$key2])){
-                            $stats[$key2] += floatval($value2);
+                if(isset($value['level'])){
+                    if($value['level'] == 1){
+                        foreach ($value as $key2 => $value2) {
+                            if(isset($stats[$key2])){
+                                $stats[$key2] += floatval($value2);
+                            }
                         }
                     }
                 }

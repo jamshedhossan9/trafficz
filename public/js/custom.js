@@ -1,3 +1,26 @@
+var globalNumberFormatter = {
+    USD : new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+
+        // These options are needed to round to whole numbers if that's what you want.
+        minimumFractionDigits: 2, // (this suffices for whole numbers, but will print 2500.10 as $2,500.1)
+        maximumFractionDigits: 2, // (causes 2500.99 to be printed as $2,501)
+    }),
+    percent: new Intl.NumberFormat('en-US', {
+        style: 'percent',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }),
+    number: new Intl.NumberFormat('en-US', {
+        maximumFractionDigits: 0
+    }),
+    numberFraction: new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }),
+};
+
 function typeOf(value) {
     var s = typeof value;
     if (s === 'object') {
@@ -20,6 +43,8 @@ var ajax = function(options, form){
         dataType: 'json',
         successCallback: function(response){},
         errorCallback: function(response){},
+        _success: function(response){},
+        _error: function(response){},
         success: function(response){
             var that = this;
             if(typeof response !== "undefined"){
@@ -30,6 +55,7 @@ var ajax = function(options, form){
                 }
                 if(response.status){
                     that.successCallback(response, form);
+                    that._success(response, form);
                 }
             }
         },
@@ -58,6 +84,7 @@ var ajax = function(options, form){
             }
             Swal.fire('Error', msg, 'error');
             that.errorCallback(response, form);
+            that._error(response, form);
         },
         complete: function(){
             unblockUi();
@@ -102,10 +129,39 @@ var showLoader = function (el){
     if(el.length){
         el.attr('data-loading', 'true');
     }
-}
+};
+
 var hideLoader = function (el){
     if(el.length){
         el.attr('data-loading', 'false');
+    }
+};
+
+var loadBtn = function(el){
+    el.prepend('<span class="loading-btn fa fa-spin fa-circle-o-notch m-r-5"></span>');
+};
+
+var unloadBtn = function(el){
+    el.find('.loading-btn').remove();
+};
+
+function _parseInt(num){
+    num = parseInt(num);
+    if(isNaN(num)) num = 0;
+    return num;
+}
+
+function _parseFloat(num){
+    num = parseFloat(num);
+    if(isNaN(num)) num = 0;
+    return num;
+}
+
+function _parseJSON(str){
+    try {
+        return JSON.parse(str);
+    } catch (e) {
+        return null;
     }
 }
 

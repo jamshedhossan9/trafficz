@@ -240,3 +240,32 @@
 #page-wrapper{
     position: relative !important;
 }
+.top-left-part{
+    width: auto !important;
+}
+#side-menu{
+    display: flex;
+    flex-direction: column;
+}
+@media(min-width:768px){
+    #side-menu{
+        flex-direction: row;
+    }   
+    #side-menu > li.menu-right{
+        margin-left: auto;
+    }
+}
+#side-menu > li > a{
+    padding: 15px 25px;
+}
+#side-menu > li .page-menu-search{
+    padding: 7px 25px;
+    font-weight: 600;
+}
+
+.switch_state_on_action[data-state="create"] .switch_on_action:not([data-state="create"]){
+    display: none;
+}
+.switch_state_on_action[data-state="edit"] .switch_on_action:not([data-state="edit"]){
+    display: none;
+}

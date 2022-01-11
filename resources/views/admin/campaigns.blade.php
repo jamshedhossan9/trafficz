@@ -48,7 +48,13 @@
             opacity: .7;
         }
         .campaign_group .toolbox .action-btn:hover {
-            color: #F49917;
+            color: #c77b11;
+        }
+        .campaign_group .toolbox .action-btn.edit-campaign-group:hover {
+            color: #048dca;
+        }
+        .campaign_group .toolbox .action-btn.delete-campaign-group:hover {
+            color: #ba411d;
         }
         .campaign_group .item_list {
             padding: 0px 15px 10px 15px;
@@ -78,14 +84,24 @@
             top: 9px;
             border-top: 2px solid #aaa;
         }
-        .delete-campaign-from-group{
-            opacity: .3;
-            cursor: pointer;
-            transition: .1s ease-in;
+        .campaign_list .item .tool-icon{
+            color: #333;
+            opacity: 0;
+            visibility: hidden;
+            transition: .2s ease-in;
         }
-        .delete-campaign-from-group:hover{
+        .campaign_list .item:hover .tool-icon{
+            opacity: .5;
+            visibility: visible;
+        }
+        .campaign_list .item .tool-icon:hover{
             opacity: 1;
+        }
+        .campaign_list .item:hover .tool-icon.delete-campaign-from-group:hover{
             color: #ba411d;
+        }
+        .campaign_list .item:hover .tool-icon.edit-campaign-from-group:hover{
+            color: #048dca;
         }
     </style>
 @endpush
@@ -104,7 +120,11 @@
                     <div class="item_title">Campaigns ({{count($group->campaigns)}}):</div>
                     <ul class="list">
                         @foreach ($group->campaigns as $campaign)
-                            <li class="item" title="{{$campaign->trackerAuth->trackerUser->tracker->name}} ({{$campaign->trackerAuth->name}}) {{$campaign->camp_id}}">{{$campaign->name}} ({{$campaign->trackerAuth->name}}) <span class="delete-campaign-from-group tool-icon ti-trash" data-id="{{$campaign->id}}"></span></li>
+                            <li class="item" title="{{$campaign->trackerAuth->trackerUser->tracker->name}} ({{$campaign->trackerAuth->name}}) {{$campaign->camp_id}}">
+                                {{$campaign->name}} ({{$campaign->trackerAuth->name}}) 
+                                <a href="#" class="edit-campaign-from-group tool-icon" data-id="{{$campaign->id}}"><span class="ti-pencil"></span></a>
+                                <a href="#" class="delete-campaign-from-group tool-icon m-l-5" data-id="{{$campaign->id}}"><span class="ti-trash"></span></a>
+                            </li>
                         @endforeach
                     </ul>
                 </div>
@@ -117,16 +137,26 @@
                     </ul>
                 </div>
                 <div class="flex-grow-none p-15 b-t">
-                    <strong>
-                        Credit: 
-                        $<span class="credit-amount">
-                            @if(!is_null($group->credit))
-                            {{$group->credit->amount}}
-                            @else
-                            0
-                            @endif
-                        </span>
-                    </strong>
+                    {{-- <div class="flex-box gap-5 align-center toolbox"> --}}
+                        {{-- <div class="flex-grow"> --}}
+                            <strong>
+                                Credit: 
+                                $<span class="credit-amount">
+                                    @if(!is_null($group->credit))
+                                    {{$group->credit->amount}}
+                                    @else
+                                    0
+                                    @endif
+                                </span>
+                            </strong>
+                        {{-- </div> --}}
+                        {{-- <div class="flex-none">
+                            <a href="#" class="edit-campaign-group action-btn" data-id="{{$group->id}}"><span class="fa fa-edit"></span></a>
+                        </div>
+                        <div class="flex-none">
+                            <a href="#" class="delete-campaign-group action-btn" data-id="{{$group->id}}"><span class="fa fa-trash"></span></a>
+                        </div> --}}
+                    {{-- </div> --}}
                 </div>
             </div>
         @endforeach
@@ -163,16 +193,19 @@
         </div>
     </div>
 
-    <div id="campaignGroupAddCampaignModal" class="modal fade" role="dialog" aria-labelledby="campaignGroupAddCampaignModalLabel" aria-hidden="true">
+    <div id="campaignGroupAddCampaignModal"  data-state="create" class="modal fade switch_state_on_action" role="dialog" aria-labelledby="campaignGroupAddCampaignModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <form action="{{ route('admin.addCampaignToGroup') }}" method="POST" 
-                    class="form-material form-horizontal ajax-form m-0"
+                    class="form-material form-horizontal ajax-form m-0 add_campaign_to_group_form"
                     data-success="campaign-group-add-campaign-success"
                     >
                     <div class="modal-header">
                         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                        <h4 class="modal-title" id="myModalLabel">Add Campaign to Group</h4>
+                        <h4 class="modal-title" id="myModalLabel">
+                            <span class="switch_on_action" data-state="create">Add</span> 
+                            <span class="switch_on_action" data-state="edit">Edit</span> 
+                             Campaign to Group</h4>
                     </div>
                     <div class="modal-body">
                         <div class="clearfix p-10">
@@ -182,6 +215,7 @@
                                 <label class="col-md-12">Name</label>
                                 <div class="col-md-12">
                                     <input type="text" name="name" class="form-control" required>
+                                    <input type="hidden" name="campaign_db_id" value="">
                                 </div>
                             </div>
                             <div class="form-group">
@@ -214,7 +248,10 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="submit" class="btn btn-info waves-effect">Submit</button>
+                        <button type="submit" class="btn btn-info waves-effect">
+                            <span class="switch_on_action" data-state="create">Submit</span> 
+                            <span class="switch_on_action" data-state="edit">Update</span> 
+                        </button>
                         <button type="button" class="btn btn-inverse waves-effect" data-dismiss="modal">Close</button>
                     </div>
                 </form>
@@ -340,6 +377,7 @@
                             <div class="title toolbox">
                                 <span class="group_name">`+group.name+`</span>
                                 <a href="#" class="action-btn add-campaign-btn" data-id="`+group.id+`" title="Add Campaign"><span class="fa fa-plus"></span></a>
+                                <a href="#" class="action-btn add-credit-btn" data-id="`+group.id+`" title="Add Credit"><span class="fa fa-credit-card-alt"></span></a>
                                 <a href="#" class="action-btn add-user-btn" data-id="`+group.id+`" title="Add Users"><span class="fa fa-user"></span></a>
                             </div>
                             <div class="campaign_list item_list">
@@ -351,6 +389,12 @@
                                 <div class="item_title">Users (0):</div>
                                 <ul class="list">
                                 </ul>
+                            </div>
+                            <div class="flex-grow-none p-15 b-t">
+                                <strong>
+                                    Credit: 
+                                    $<span class="credit-amount">0</span>
+                                </strong>
                             </div>
                         </div>
                     `;
@@ -370,7 +414,11 @@
                         <div class="item_title">Campaigns (`+(group.campaigns.length)+`):</div>
                         <ul class="list">`;
                             for(var item of group.campaigns){
-                                campaignsHtml += `<li class="item" title="`+item.tracker_auth.tracker_user.tracker.name+` (`+item.tracker_auth.name+`) `+item.camp_id+`">`+item.name+` (`+item.tracker_auth.name+`) <span class="delete-campaign-from-group tool-icon ti-trash" data-id="`+item.id+`"</li>`;
+                                campaignsHtml += `<li class="item" title="`+item.tracker_auth.tracker_user.tracker.name+` (`+item.tracker_auth.name+`) `+item.camp_id+`">
+                                    `+item.name+` (`+item.tracker_auth.name+`) 
+                                    <a href="#" class="edit-campaign-from-group tool-icon" data-id="`+item.id+`"><span class="ti-pencil"></span></a>
+                                    <a href="#" class="delete-campaign-from-group tool-icon m-l-5" data-id="`+item.id+`"><span class="ti-trash"></span></a>
+                                </li>`;
                             }
                             campaignsHtml += `
                         </ul>`;
@@ -401,8 +449,43 @@
             e.preventDefault();
             var el = $(this);
             var groupId = el.attr('data-id');
-            $('#campaignGroupAddCampaignModal').find('[name="campaign_group_id"]').val(groupId);
-            $('#campaignGroupAddCampaignModal').modal('show');
+            var modal = $('#campaignGroupAddCampaignModal');
+            var form = modal.find('.add_campaign_to_group_form');
+            form.get(0).reset();
+            modal.find('[name="campaign_group_id"]').val(groupId);
+            modal.find('[name="campaign_db_id"]').val('');
+            modal.find('[name="tracker_auth_id"]').val('').change();
+            modal.find('[name="campaign_tag_id[]"]').val([]).change();
+            modal.attr('data-state', 'create');
+            modal.modal('show');
+        });
+
+        $(document).on('click', '.edit-campaign-from-group', function(e){
+            e.preventDefault()
+            var el = $(this);
+            var id = el.attr('data-id');
+            var modal = $('#campaignGroupAddCampaignModal');
+            modal.attr('data-state', 'edit');
+            loadBtn(el);
+            ajax({
+                blockUi: false,
+                url: listUrls.adminGetCampaignFromGroup(id),
+                _success: function(resp, prop){
+                    unloadBtn(prop.el);
+                    for(var x in resp.data.editData){
+                        if(resp.data.editData.hasOwnProperty(x)){
+                            prop.modal.find('[name="'+x+'"]').val(resp.data.editData[x]);
+                            if(x == 'tracker_auth_id' || x == 'campaign_tag_id[]'){
+                                prop.modal.find('[name="'+x+'"]').trigger('change');
+                            }
+                        }
+                    }
+                    prop.modal.modal('show');
+                },
+                _error: function(resp, prop){
+                    unloadBtn(prop.el);
+                }
+            }, {el:el, modal:modal})
         });
 
         $('.credit_datepicker').datepicker({

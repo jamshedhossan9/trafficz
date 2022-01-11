@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Tracker;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\TrackerAuth;
@@ -98,18 +99,36 @@ class TrackerController extends Controller
         }
 
         if($passRules){
-            $trackerAuth = new TrackerAuth();
+            $trackerAuthId = 0;
+            if($request->has('tracker_id')){
+                $trackerAuthId = trim($request->tracker_id);
+                $trackerAuthId = intval($trackerAuthId);
+            }
+            if($trackerAuthId){
+                $trackerAuth = TrackerAuth::whereId($trackerAuthId)->whereUserId($this->user->id)->first();   
+            }
+            if(empty($trackerAuth)){
+                $trackerAuth = new TrackerAuth();    
+            }
             $trackerAuth->name = $name;
             $trackerAuth->user_id = $this->user->id;
             $trackerAuth->tracker_user_id  = intval($trackerUserId);
             $trackerAuth->auth  = $auth;
             $trackerAuth->save();
 
-            $output->msg->text = 'Auth Added Successfully';
+            if($trackerAuthId){
+                $output->msg->text = 'Auth updated Successfully';
+                $output->data['state'] = 'edit';
+            }
+            else{
+                $output->msg->text = 'Auth Added Successfully';
+                $output->data['state'] = 'create';
+            }
             $output->msg->type = 'success';
             $output->msg->title = 'Successful';
             $output->status = true;
             $output->data['tracker'] = TrackerAuth::with(['trackerUser', 'trackerUser.tracker'])->find($trackerAuth->id);
+            
         }
         else{
             $output->msg->text = $msg;
@@ -137,7 +156,25 @@ class TrackerController extends Controller
      */
     public function edit($id)
     {
-        //
+        $output = $this->ajaxRes();
+        $trackerAuth = TrackerAuth::whereId($id)->whereUserId($this->user->id)->first();
+        if(!empty($trackerAuth)){
+            $editData = [
+                'tracker_id' => $trackerAuth->id,
+                'name' => $trackerAuth->name,
+            ];
+            foreach($trackerAuth->auth as $key => $value){
+                $editData[$key] = $value;
+            }
+            $output->status = true;
+            $output->data['editData'] = $editData;
+        }
+        else{
+            $output->msg->show = true;
+            $output->msg->text = 'Auth not found';
+        }
+        
+        return response()->json($output);
     }
 
     /**
@@ -160,6 +197,19 @@ class TrackerController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $output = $this->ajaxRes(true);
+        $trackerAuth = TrackerAuth::whereId($id)->whereUserId($this->user->id)->first();
+        if(!empty($trackerAuth)){
+            $trackerAuth->delete();
+            $output->status = true;
+            $output->msg->text = 'Everything is deleted associated with this Auth';
+            $output->msg->title = 'Deleted';
+            $output->msg->type = 'success';
+        }
+        else{
+            $output->msg->text = 'Auth not found';
+        }
+
+        return response()->json($output);
     }
 }

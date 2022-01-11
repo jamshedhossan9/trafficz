@@ -119,6 +119,33 @@ class CampaignController extends Controller
         //
     }
 
+    public function getCampaign($id)
+    {
+        $output = $this->ajaxRes();
+        $campaign = Campaign::whereId($id)->with(['trackerAuth', 'tags'])->first();
+        if(!empty($campaign)){
+            $editData = [
+                'campaign_db_id' => $campaign->id,
+                'name' => $campaign->name,
+                'campaign_id' => $campaign->camp_id,
+                'campaign_group_id' => $campaign->campaign_group_id,
+                'tracker_auth_id' => $campaign->tracker_auth_id,
+                'campaign_tag_id[]' => $campaign->tag_ids,
+            ];
+            if(empty($campaign->tag_ids)){
+                $editData['campaign_tag_id[]'] = [];
+            }
+            $output->status = true;
+            $output->data['editData'] = $editData;
+        }
+        else{
+            $output->msg->show = true;
+            $output->msg->text = 'Campaign not found';
+        }
+        
+        return response()->json($output);
+    }
+
     public function deleteCampaign($id)
     {
         $output = $this->ajaxRes(true);
@@ -144,22 +171,36 @@ class CampaignController extends Controller
 
         $output = $this->ajaxRes(true);
 
+        $campaignDbId = 0;
+        if($request->has('campaign_db_id')){
+            $campaignDbId = $request->campaign_db_id;
+            $campaignDbId = intval($campaignDbId);
+        }
+
         $campaignGroupId = trim($request->input('campaign_group_id'));
         $name = trim($request->input('name'));
         $campaignId = trim($request->input('campaign_id'));
         $trackerAuthId = trim($request->input('tracker_auth_id'));
         $campaignGroupId = intval($campaignGroupId);
         $trackerAuthId = intval($trackerAuthId);
+        
         $checkEsxist = Campaign::where('campaign_group_id', $campaignGroupId)->where('tracker_auth_id', $trackerAuthId)->where('camp_id', $campaignId)->first();
-        if(empty($checkEsxist)){
+        if($campaignDbId || empty($checkEsxist)){
+            if($campaignDbId){
+                $campaign = Campaign::find($campaignDbId);
+            }
 
-            $campaign = new Campaign();
+            if(empty($campaign)){
+                $campaign = new Campaign();
+            }
             $campaign->campaign_group_id = $campaignGroupId;
             $campaign->tracker_auth_id = $trackerAuthId;
             $campaign->name = $name;
             $campaign->camp_id = $campaignId;
             $campaignSave = $campaign->save();
-
+            if($campaignDbId){
+                CampaignTag::where('campaign_id', $campaignDbId)->delete();
+            }
             if($campaignSave){
                 if($request->has('campaign_tag_id')){
                     $tagIds = $request->campaign_tag_id;
@@ -193,7 +234,14 @@ class CampaignController extends Controller
                 }
             }
 
-            $output->msg->text = 'Campaign added to Group Successfully';
+            if($campaignDbId){
+                $output->msg->text = 'Campaign updated Successfully';
+                $output->data['state'] = 'edit';
+            }
+            else{
+                $output->msg->text = 'Campaign added to Group Successfully';
+                $output->data['state'] = 'create';
+            }
             $output->msg->type = 'success';
             $output->msg->title = 'Successful';
             $output->status = true;

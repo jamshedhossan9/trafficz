@@ -11,6 +11,7 @@ use App\Models\CampaignGroupUser;
 use App\Services\CampaignService;
 use App\Models\Role;
 use App\Models\Invoice;
+use App\Models\User;
 
 class DashboardController extends Controller
 {
@@ -19,10 +20,25 @@ class DashboardController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index($userId = 0)
     {
-        $user = $this->user;
+        if(isAdmin()){
+            if($userId != 0){
+                $user = User::whereId($userId)->whereParentId($this->user->id)->first();
+                if(!empty($user)){
+                    $this->user = $user;
+                }
+                else{
+                    abort(403);    
+                }
+            }
+            else{
+                abort(403);
+            }
+        }
         $this->campaignGroupUsers = CampaignGroupUser::where('user_id', $this->user->id)->with('campaignGroup.campaigns.tags')->orderBy('id', 'desc')->get();
+        $this->pendingInvoiceAmount = $this->getPendingInvoiceAmount(false);
+        // dd($this->pendingInvoiceAmount);
         
         // dd($this->campaignGroupUsers);
         return view('user.dashboard', $this->data);
@@ -94,13 +110,29 @@ class DashboardController extends Controller
         //
     }
 
-    public function getAllCampaignGroupStats(Request $request)
+    public function getAllCampaignGroupStats(Request $request, $userId = 0)
     {
         $output = $this->ajaxRes();
+
+        if(isAdmin()){
+            if($userId != 0){
+                $user = User::whereId($userId)->whereParentId($this->user->id)->first();
+                if(!empty($user)){
+                    $this->user = $user;
+                }
+                else{
+                    abort(403);    
+                }
+            }
+            else{
+                abort(403);
+            }
+        }
 
         $groupId = 'all';
         $dateFrom = date('Y-m-d');
         $dateTo = date('Y-m-d');
+        $todayDate = date('Y-m-d');
         $tagIds = [];
 
         if($request->has('group')){
@@ -144,6 +176,7 @@ class DashboardController extends Controller
         $campaignGroupStats = [];
         $campaignGroupTotalStats = [];
         $allCredits = 0;
+        $todayAmount = 0;
         foreach($campaignGroupUsers as $campaignGroupUser){
             $campaignGroup = $campaignGroupUser->campaignGroup;
             $group = [
@@ -167,7 +200,9 @@ class DashboardController extends Controller
                 $tracker = $campaign->trackerAuth->trackerUser->tracker->slug;
                 $auth = $campaign->trackerAuth->auth;
                 
-                $stats = getTrackerCampaignStat($tracker, $auth, $dateFrom, $dateTo, $campaign->camp_id);
+                $campaigntSats = $this->getTrackerCampaignStat($tracker, $auth, $dateFrom, $dateTo, $campaign->camp_id, $campaign->id);
+                $stats = $campaigntSats['all'];
+                $todayAmount += $campaigntSats['today']['cost'];
                 $apiResponses[] = [
                     'id' => $campaign->id,
                     'name' => $campaign->name,
@@ -185,6 +220,9 @@ class DashboardController extends Controller
             if(!empty($credits)){
                 foreach($credits as $credit){
                     $group['credit'] += $credit->amount;
+                    if($credit->date == $todayDate){
+                        $todayAmount += $credit->amount;
+                    }
                     $allCredits += $credit->amount;
                 }
             }
@@ -208,25 +246,40 @@ class DashboardController extends Controller
             'epc' => number_format($allTotals['cpv'], 2),
         ];
 
-        $output->data['pending_amount'] = 0;
-        if($groupId == 'all'){
-            $output->data['pending_amount'] = $campaignGroupTotalStats['revenue'] + $this->getPendingInvoiceAmount($dateFrom);
-        }
-
-        $output->data['pending_amount'] = number_format($output->data['pending_amount'], 2);
+        $campaignGroupTotalStats['revenueOrg'] = $campaignGroupTotalStats['revenue'];
         $campaignGroupTotalStats['revenue'] = number_format($campaignGroupTotalStats['revenue'], 2);
+        $campaignGroupTotalStats['clicks'] = number_format($campaignGroupTotalStats['clicks']);
 
         $output->data['groupStats'] = $campaignGroupStats;
         $output->data['totals'] = $campaignGroupTotalStats;
+        $output->data['dates'] = ['from' => $dateFrom, 'to' => $dateTo];
+        if($groupId == 'all' && $dateTo == $todayDate){
+            $output->data['today_amount'] = $todayAmount;
+        }
         
         $output->status = true;
 
         return response()->json($output);
     }
 
-    public function getCampaignHourlyStats(Request $request)
+    public function getCampaignHourlyStats(Request $request, $userId = 0)
     {
         $output = $this->ajaxRes();
+
+        if(isAdmin()){
+            if($userId != 0){
+                $user = User::whereId($userId)->whereParentId($this->user->id)->first();
+                if(!empty($user)){
+                    $this->user = $user;
+                }
+                else{
+                    abort(403);    
+                }
+            }
+            else{
+                abort(403);
+            }
+        }
 
         $groupId = 'all';
         $dateFrom = date('Y-m-d');
@@ -298,45 +351,143 @@ class DashboardController extends Controller
         return response()->json($output);
     }
 
-    public function getPendingInvoiceAmount($dateTo)
+    public function getTrackerCampaignStat($tracker, $auth, $dateFrom, $dateTo, $trackerCampId, $campaignId)
     {
-        $amount = 0;
+        $output = [
+            'all' => null,
+            'today' => trackerCampaignStatDefaults(),
+        ];
+        $todayDate = date('Y-m-d');
+        $reports = [];
+        $reportDB = CampaignGroupReport::where('campaign_id', $campaignId)->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->orderBy('date', 'asc')->get();
+        if(!empty($reportDB)){
+            $reports = $reportDB->toArray();
+        }
+        if($dateTo == $todayDate){
+            $searchTodayInApi = true;
+            if(!empty($reports)){
+                $lastReportDate = end($reports)['date'];
+                if($lastReportDate == $dateTo){
+                    $searchTodayInApi = false;
+                }
+            }
+            if($searchTodayInApi){
+                $todayStats = getTrackerCampaignStat($tracker, $auth, $todayDate, $todayDate, $trackerCampId);
+                $reports[] = $todayStats;
+                $output['today'] = $todayStats;
+            }
+        }
+        $totals = trackerCampaignStatSum($reports);
+        $output['all'] = $totals;
+        return $output;
+    }
 
-        $lastInvoice = Invoice::whereUserId($this->user->id)->orderBy('id', 'desc')->first();
+    public function getAllCampaignGroupStatsV2($params)
+    {
+        $todayDateFrom = date('Y-m-d');
+        $todayDateTo = date('Y-m-d');
+        $getTodayStats = false;
+        $groupId = 'all';
+        if(!empty($params['from']) && !empty($params['to'])){
+            $dateFrom = $params['from'];
+            $dateFrom = date('Y-m-d', strtotime($dateFrom));
+            $dateTo = $params['to'];
+            $dateTo = date('Y-m-d', strtotime($dateTo));
+        }
+        else{
+            $dateFrom = $todayDateFrom;
+            $dateTo = $todayDateTo;
+        }
+        if(!empty($params['groupId']) || $params['groupId'] != 'all'){
+            $groupId = $params['groupId'];
+        }
+        if($dateTo == date('Y-m-d')){
+            $getTodayStats = true;
+            $dateTo = date("Y-m-d", strtotime("-1 day", strtotime($dateTo)));
+        }
+        $campaignGroupStats = [];
+
+        $query = CampaignGroupUser::where('user_id', $this->user->id);
+        $relations = [];
+        $relations[] = 'campaignGroup.campaigns.trackerAuth.trackerUser.tracker';
+        $relations[] = 'campaignGroup.campaigns.tags';
+        if($groupId != 'all'){
+            $query->where('campaign_group_id', $groupId);
+        }
+        
+        if(!empty($relations)){
+            $query->with($relations);
+        }
+        // \Log::info(json_encode($query));
+        $campaignGroupUsers = $query->get();
+    }
+
+    public function getPendingInvoiceAmount($includingToday)
+    {
+        $output = [
+            'from' => '',
+            'to' => '',
+            'amount' => 0,
+        ];
+        $amount = 0;
+        $dateFrom = null;
+        $lastInvoice = Invoice::whereUserId($this->user->id)->whereHandled(true)->orderBy('id', 'desc')->first();
         if(!empty($lastInvoice)){
             $dateFrom = date("Y-m-d", strtotime("+1 day", strtotime($lastInvoice->end_date)));
-            $dateTo = date("Y-m-d", strtotime("-1 day", strtotime($dateTo)));
-            if(strtotime($dateTo) >= strtotime($dateFrom)){
-                $invoiceData = ['amount' => 0, 'credit' => 0];
-                $campaignGroupUsers = CampaignGroupUser::with(['campaignGroup'])->where('user_id', $this->user->id)->get();
-                $allCreditIds = [];
-                if(!empty($campaignGroupUsers)){
-                    foreach($campaignGroupUsers as $campaignGroupUser){
-                        $campaigns = $campaignGroupUser->campaignGroup->campaigns()->get();
-                        $credits = $campaignGroupUser->campaignGroup->credits()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
-                        if(!empty($credits)){
-                            foreach($credits as $credit){
-                                $invoiceData['credit'] += $credit->amount;
-                                $allCreditIds[] = $credit->id;
-                            }
+        }
+        else if($this->user->created_at != null){
+            $dateFrom = date("Y-m-d", strtotime($this->user->created_at));
+        }
+
+        
+        if($includingToday){
+            $dateTo = date("Y-m-d");
+        }
+        else{
+            $dateTo = date("Y-m-d", strtotime("-1 day"));
+        }
+        // dd($dateFrom, $dateTo);
+        $output['from'] = $dateFrom;
+        $output['to'] = $dateTo;
+        if($dateFrom != null && strtotime($dateTo) >= strtotime($dateFrom)){
+            $invoiceData = ['amount' => 0, 'credit' => 0];
+            $campaignGroupUsers = CampaignGroupUser::with(['campaignGroup'])->where('user_id', $this->user->id)->get();
+            $allCreditIds = [];
+            if(!empty($campaignGroupUsers)){
+                foreach($campaignGroupUsers as $campaignGroupUser){
+                    $campaigns = $campaignGroupUser->campaignGroup->campaigns()->get();
+                    $credits = $campaignGroupUser->campaignGroup->credits()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
+                    if(!empty($credits)){
+                        foreach($credits as $credit){
+                            $invoiceData['credit'] += $credit->amount;
+                            $allCreditIds[] = $credit->id;
                         }
-                        if(!empty($campaigns)){
-                            foreach($campaigns as $campaign){
-                                $reports = $campaign->reports()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
-                                if(!empty($reports)){
-                                    foreach($reports as $report){
-                                        $invoiceData['amount'] += $report->cost;
-                                    }
-                                }
+                    }
+                    if(!empty($campaigns)){
+                        foreach($campaigns as $campaign){
+                            $trackerAuth = $campaign->trackerAuth()->with('trackerUser.tracker')->first();
+                            $tracker = $trackerAuth->trackerUser->tracker->slug;
+                            $auth = $trackerAuth->auth;
+                            
+                            $reports = $this->getTrackerCampaignStat($tracker, $auth, $dateFrom, $dateTo, $campaign->camp_id, $campaign->id);
+                            // dd($reports);
+                            // $reports = $campaign->reports()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
+                            if(!empty($reports['all'])){
+                                // foreach($reports as $report){
+                                //     $invoiceData['amount'] += $report['cost'];
+                                // }
+                                $invoiceData['amount'] += $reports['all']['cost'];
                             }
                         }
                     }
                 }
-                $amount = $invoiceData['amount'] + $invoiceData['credit'];
             }
+            $amount = $invoiceData['amount'] + $invoiceData['credit'];
         }
         
-        return $amount;
+        $output['amount'] = $amount;
+        
+        return $output;
     }
 
     public function invoices()
@@ -356,7 +507,30 @@ class DashboardController extends Controller
         // $roleUsers = Role::find(3);
         // $users = $roleUsers->users()->get();
         // dd($users);
+        /*
+        $dateFrom = '2022-01-05'; 
+        $dateTo = '2022-01-10'; 
+        $campaignId = 8;
+        $reports = [];
+        $reportDB = CampaignGroupReport::where('campaign_id', $campaignId)->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->orderBy('date', 'asc')->get();
+        if(!empty($reportDB)){
+            $reports = $reportDB->toArray();
+        }
+        if($dateTo == date('Y-m-d')){
+            $searchTodayInApi = true;
+            if(!empty($reports)){
+                $lastReportDate = end($reports)['date'];
+                if($lastReportDate == $dateTo){
+                    $searchTodayInApi = false;
+                }
+            }
+            if($searchTodayInApi){
 
+            }
+        }
+        $totals = trackerCampaignStatSum($reports);
+        dd($reports, $totals);
+        */
         $campaignService->getAllCampaignStats();
     }
 }
