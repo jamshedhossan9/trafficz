@@ -121,7 +121,7 @@ class CampaignService
 			$dateTo = date('Y-m-d', strtotime('-1 days', strtotime($currentDate)));
 		}
 		else{
-			exit();
+			return;
 		}
         
 
@@ -234,6 +234,7 @@ class CampaignService
 
     public function makeInvoice($userId, $dateFrom, $dateTo)
     {
+        $splitByTrackers = [];
         $user = User::find($userId);
         $dateFrom = date('Y-m-d', strtotime($dateFrom));
         $dateTo = date('Y-m-d', strtotime($dateTo));
