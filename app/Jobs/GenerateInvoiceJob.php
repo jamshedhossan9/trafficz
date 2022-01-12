@@ -40,5 +40,6 @@ class GenerateInvoiceJob implements ShouldQueue
             //release the job to try again after 10s
             $this->release(10);
         }
+        return;
     }
 }

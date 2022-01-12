@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -12,21 +11,21 @@ use Illuminate\Queue\SerializesModels;
 
 use App\Services\CampaignService;
 
-class CampaignStatJob implements ShouldQueue
+class StoreAllCampaignStatsXDaysJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $campaignId;
-    protected $date;
+    public $timeout = 14000;
+
+    protected $day;
     /**
      * Create a new job instance.
      *
      * @return void
      */
-    public function __construct($campaignId, $date)
+    public function __construct($day)
     {
-        $this->campaignId = $campaignId;
-        $this->date = $date;
+        $this->day = $day;
     }
 
     /**
@@ -37,9 +36,9 @@ class CampaignStatJob implements ShouldQueue
     public function handle(CampaignService $campaignService)
     {
         try{
-            $campaignService->storeCampaignStats($this->campaignId, $this->date);
+            $campaignService->storeAllCampaignStatsXDays($this->day);
         }catch(Exception $e){
-            \Log::info("getSingleCampaignStats Job exception: ". json_encode($e->getMessage()));
+            \Log::info("storeAllCampaignStatsXDays Job exception: ". json_encode($e->getMessage()));
             //release the job to try again after 10s
             $this->release(10);
         }

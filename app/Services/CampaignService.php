@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Jobs\CampaignGroupStatJob;
 use App\Jobs\GenerateInvoiceJob;
+use App\Jobs\StoreAllCampaignStatsXDaysJob;
+use App\Jobs\GenerateYesterdayStatsAndInvoiceJob;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\Campaign;
@@ -26,6 +28,7 @@ class CampaignService
 
     public function getAllCampaignGroupStats($groupId)
     {
+        return;
         $groupId = intval($groupId);
         $dateFrom = date('Y-m-d',strtotime("-1 days")); //$this->date;
         $dateTo = $dateFrom; //$this->date;
@@ -80,6 +83,7 @@ class CampaignService
 
     public function getAllCampaignStats()
     {
+        return;
         $groups = CampaignGroup::all();
         $campaignGroupStatJobs = [];
         if(!empty($groups)){
@@ -101,6 +105,7 @@ class CampaignService
 
     public function generateInvoice()
     {
+        return;
         $days = array('sunday', 'monday', 'tuesday', 'wednesday','thursday','friday', 'saturday');
 		$currentDate = date('Y-m-d');
 		$dayNo = date('w', strtotime($currentDate));
@@ -191,7 +196,117 @@ class CampaignService
         // dd($data);
     }
 
-    public function getSingleCampaignStats($campaignId, $date)
+    public function generateInvoices()
+    {
+        $days = array('sunday', 'monday', 'tuesday', 'wednesday','thursday','friday', 'saturday');
+		$currentDate = date('Y-m-d');
+		$dayNo = date('w', strtotime($currentDate));
+		$dayWeek = $days[$dayNo];
+		$dateFrom = null;
+		$dateTo = null;
+		if($dayWeek == 'monday'){ // thursday - sunday
+			$dateFrom = date('Y-m-d', strtotime('-4 days', strtotime($currentDate)));
+			$dateTo = date('Y-m-d', strtotime('-1 days', strtotime($currentDate)));
+		}
+		else if($dayWeek == 'thursday'){ // monday - wednesday
+			$dateFrom = date('Y-m-d', strtotime('-3 days', strtotime($currentDate)));
+			$dateTo = date('Y-m-d', strtotime('-1 days', strtotime($currentDate)));
+		}
+		else{
+			exit();
+		}
+
+        $this->makeInvoices($dateFrom, $dateTo);
+    }
+
+    public function makeInvoices($dateFrom, $dateTo)
+    {
+        $roleUsers = Role::find(3);
+        $users = $roleUsers->users()->get();
+        $data = [];
+        $splitByTrackers = [];
+        if(!empty($users)){
+            foreach($users as $user){
+                $this->makeInvoice($user->id, $dateFrom, $dateTo);
+            }
+        }
+    }
+
+    public function makeInvoice($userId, $dateFrom, $dateTo)
+    {
+        $user = User::find($userId);
+        $dateFrom = date('Y-m-d', strtotime($dateFrom));
+        $dateTo = date('Y-m-d', strtotime($dateTo));
+        if(!empty($user)){
+            $invoiceData = ['amount' => 0, 'credit' => 0];
+            $campaignGroupUsers = CampaignGroupUser::with(['campaignGroup'])->where('user_id', $user->id)->get();
+            $allCreditIds = [];
+            if(!empty($campaignGroupUsers)){
+                foreach($campaignGroupUsers as $campaignGroupUser){
+                    $campaigns = $campaignGroupUser->campaignGroup->campaigns()->with('trackerAuth')->get();
+                    $credits = $campaignGroupUser->campaignGroup->credits()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
+                    if(!empty($credits)){
+                        foreach($credits as $credit){
+                            $invoiceData['credit'] += $credit->amount;
+                            $allCreditIds[] = $credit->id;
+                        }
+                    }
+                    if(!empty($campaigns)){
+                        foreach($campaigns as $campaign){
+                            $reports = $campaign->reports()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
+                            if(!empty($reports)){
+                                if(empty($splitByTrackers[$campaign->tracker_auth_id])){
+                                    $splitByTrackers[$campaign->tracker_auth_id] = [
+                                        'name' => $campaign->trackerAuth->name,
+                                        'amount' => 0,
+                                    ];
+                                }
+                                foreach($reports as $report){
+                                    $invoiceData['amount'] += $report->cost;
+                                    $splitByTrackers[$campaign->tracker_auth_id]['amount'] += $report->cost;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            $invoice = Invoice::where('user_id', $user->id)->where('end_date', $dateTo)->first();
+            if(empty($invoice)){
+                $invoice = new Invoice();
+                $invoice->user_id = $user->id;
+            }
+            $invoice->start_date = $dateFrom;
+            $invoice->end_date = $dateTo;
+            $invoice->description = 'Traffic revenue';
+            $invoice->amount = $invoiceData['amount'];
+            $invoice->credit = $invoiceData['credit'];
+            $invoice->total = $invoiceData['credit'] + $invoiceData['amount'];
+            $invoice->splits = $splitByTrackers;
+            $invoice->save();
+            if(!empty($allCreditIds)){
+                Credit::whereIn('id', $allCreditIds)->update(['used' => true]);
+            }
+        }
+    }
+
+    public function storeAllCampaignStatsYerterday()
+    {
+        $date = date('Y-m-d',strtotime("-1 days"));
+        $this->storeAllCampaignStats($date);
+    }
+
+    public function storeAllCampaignStats($date)
+    {
+        $campaigns = Campaign::all();
+        if(!empty($campaigns)){
+            foreach($campaigns as $campaign){
+                $this->storeCampaignStats($campaign->id, $date);
+                sleep(5);
+            }
+        }
+    }
+
+    public function storeCampaignStats($campaignId, $date)
     {
         $campaignId = intval($campaignId);
         $date = date('Y-m-d', strtotime($date));
@@ -199,37 +314,70 @@ class CampaignService
         $dateTo = $date;
         $campaign = Campaign::with('trackerAuth.trackerUser.tracker')->find($campaignId);
         if(!empty($campaign)){
-            $checkExists = $campaign->reportByDate($dateFrom)->first();
-            if(empty($checkExists)){
-                $tracker = $campaign->trackerAuth->trackerUser->tracker->slug;
-                $auth = $campaign->trackerAuth->auth;
-                
-                $stats = getTrackerCampaignStat($tracker, $auth, $dateFrom, $dateTo, $campaign->camp_id);
+            $report = $campaign->reportByDate($dateFrom)->first();
+            if(empty($report)){
                 $report = new CampaignGroupReport();
                 $report->campaign_group_id = $campaign->campaign_group_id ;
                 $report->campaign_id = $campaign->id;
                 $report->date = $dateFrom;
-                $report->conversions = $stats['conversions'];
-                $report->cost = $stats['cost'];
-                $report->revenue = $stats['revenue'];
-                $report->profit = $stats['profit'];
-                $report->impressions = $stats['impressions'];
-                $report->visits = $stats['visits'];
-                $report->clicks = $stats['clicks'];
-                $report->epc = $stats['epc'];
-                $report->cpc = $stats['cpc'];
-                $report->epv = $stats['epv'];
-                $report->cpv = $stats['cpv'];
-                $report->roi = $stats['roi'];
-                $report->ctr = $stats['ctr'];
-                $report->ictr = $stats['ictr'];
-                $report->cr = $stats['cr'];
+            }
 
-                $report->save();
+            $tracker = $campaign->trackerAuth->trackerUser->tracker->slug;
+            $auth = $campaign->trackerAuth->auth;
+            
+            $stats = getTrackerCampaignStat($tracker, $auth, $dateFrom, $dateTo, $campaign->camp_id);
+            
+            
+            $report->conversions = $stats['conversions'];
+            $report->cost = $stats['cost'];
+            $report->revenue = $stats['revenue'];
+            $report->profit = $stats['profit'];
+            $report->impressions = $stats['impressions'];
+            $report->visits = $stats['visits'];
+            $report->clicks = $stats['clicks'];
+            $report->epc = $stats['epc'];
+            $report->cpc = $stats['cpc'];
+            $report->epv = $stats['epv'];
+            $report->cpv = $stats['cpv'];
+            $report->roi = $stats['roi'];
+            $report->ctr = $stats['ctr'];
+            $report->ictr = $stats['ictr'];
+            $report->cr = $stats['cr'];
 
-                $log['campaigns'][$campaign->id][$dateFrom]['new'] = $stats;
+            $report->save();
+            
+        }
+    }
+
+    public function generateYesterdayStatsAndInvoice()
+    {
+        $this->storeAllCampaignStatsYerterday();
+        $this->generateInvoices();
+        return;
+    }
+
+    public function generateYesterdayStatsAndInvoiceRun()
+    {
+        GenerateYesterdayStatsAndInvoiceJob::dispatch();
+    }
+
+    public function storeAllCampaignStatsXDays($day)
+    {
+        $day = intval($day);
+        if($day){
+            $pullDate = date('Y-m-d', strtotime('-1 days'));
+            for($i = 0; $i < $day; $i++){
+                $this->storeAllCampaignStats($pullDate);
+                sleep(10);
+                $pullDate = date('Y-m-d', strtotime('-1 days', strtotime($pullDate)));
             }
         }
+        return;
+    }
+
+    public function storeAllCampaignStatsXDaysRun($day)
+    {
+        StoreAllCampaignStatsXDaysJob::dispatch($day);
     }
 
     /**
