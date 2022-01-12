@@ -82,16 +82,16 @@ Route::get('check-cron-status', [App\Http\Controllers\User\DashboardController::
 
 Route::group(['prefix' => 'service', 'as' => 'service.'], function(){
     Route::group(['prefix' => 'campaign', 'as' => 'campaign.', 'namespace' => 'App\Services'], function(){
-        Route::get('store-stats/{campaignId}/{date}', [CampaignService::class, 'storeCampaignStats'])->name('storeStats');
-        Route::get('store-stats-all/{date}', [CampaignService::class, 'storeAllCampaignStats'])->name('storeStatsAll');
-        Route::get('store-stats-all-yesterday', [CampaignService::class, 'storeAllCampaignStatsYerterday'])->name('storeStatsAllYerterday');
+        Route::get('store-stats/{campaignId}/{date}', 'CampaignService@storeCampaignStats')->name('storeStats');
+        Route::get('store-stats-all/{date}', 'CampaignService@storeAllCampaignStats')->name('storeStatsAll');
+        Route::get('store-stats-all-yesterday', 'CampaignService@storeAllCampaignStatsYerterday')->name('storeStatsAllYerterday');
     });
     Route::group(['prefix' => 'invoice', 'as' => 'invoice.', 'namespace' => 'App\Services'], function(){
-        Route::get('make/{userId}/{dateFrom}/{dateTo}', [CampaignService::class, 'makeInvoice'])->name('makeInvoice');
-        Route::get('make-all/{dateFrom}/{dateTo}', [CampaignService::class, 'makeInvoices'])->name('makeInvoices');
-        Route::get('generate', [CampaignService::class, 'generateInvoices'])->name('generateInvoices');
+        Route::get('make/{userId}/{dateFrom}/{dateTo}', 'CampaignService@makeInvoice')->name('makeInvoice');
+        Route::get('make-all/{dateFrom}/{dateTo}', 'CampaignService@makeInvoices')->name('makeInvoices');
+        Route::get('generate', 'CampaignService@generateInvoices')->name('generateInvoices');
     });
 
-    Route::get('stats-invoice-yesterday', [CampaignService::class, 'generateYesterdayStatsAndInvoiceRun'])->name('generateYesterdayStatsAndInvoice');
-    Route::get('stats-all-x-days/{day}', [CampaignService::class, 'storeAllCampaignStatsXDaysRun'])->name('storeAllCampaignStatsXDays');
+    Route::get('stats-invoice-yesterday', [App\Services\CampaignService::class, 'generateYesterdayStatsAndInvoiceRun'])->name('generateYesterdayStatsAndInvoice');
+    Route::get('stats-all-x-days/{day}', [App\Services\CampaignService::class, 'storeAllCampaignStatsXDaysRun'])->name('storeAllCampaignStatsXDays');
 });
