@@ -1,7 +1,12 @@
 @extends('layouts.app')
 
 @section('pageActionbar')
-    <a href="#userCreateModal" class="btn btn-info" data-toggle="modal"><span class="icon-plus"></span> Add User</a>
+    <div class="flex-none">
+        <a class="btn btn-warning import-yesterday-stats" href="{{ route('superAdmin.importYesterdayCampaignData') }}" >Import Yesterday Stats</a>
+    </div>
+    <div class="flex-none">
+        <a href="#userCreateModal" class="btn btn-info" data-toggle="modal"><span class="icon-plus"></span> Add User</a>
+    </div>
 @endsection
 
 @section('content')
@@ -124,5 +129,25 @@
             }
             $('#userCreateModal').modal('hide');
         };
+
+        $('.import-yesterday-stats').click(function(e){
+            e.preventDefault();
+            var el = $(this);
+            var url = el.attr('href');
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This will clear campaign stats for yesterday and will import fresh. Then it will re-adjust yesterday's invoice if there is any!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Import!',
+                cancelButtonText: 'No, cancel!',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    ajax({url: url});
+                }
+            });
+
+        });
     </script>
 @endpush

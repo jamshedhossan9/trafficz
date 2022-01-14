@@ -33,6 +33,7 @@ Route::get('/home-1', [App\Http\Controllers\HomeController::class, 'index'])->na
 Route::group(['middleware' => 'auth'], function(){
     Route::group(['namespace' => 'App\Http\Controllers\SuperAdmin', 'prefix' => 'super-admin', 'as' => 'superAdmin.', 'middleware' => ['rolesuperadmin']], function(){
         Route::resource('users', UserController::class);
+        Route::get('campaign-group/import-yesterday-data', 'UserController@importYesterdayData')->name('importYesterdayCampaignData');
     });   
     
     Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['roleadmin']], function(){
@@ -82,6 +83,7 @@ Route::get('check-cron-status', [App\Http\Controllers\User\DashboardController::
 
 Route::group(['prefix' => 'service', 'as' => 'service.'], function(){
     Route::group(['prefix' => 'campaign', 'as' => 'campaign.', 'namespace' => 'App\Services'], function(){
+        Route::get('get-stats/{campaignId}/{dateFrom}/{dateTo}', 'CampaignService@getCampaignStats')->name('getStats');
         Route::get('store-stats/{campaignId}/{date}', 'CampaignService@storeCampaignStats')->name('storeStats');
         Route::get('store-stats-all/{date}', 'CampaignService@storeAllCampaignStats')->name('storeStatsAll');
         Route::get('store-stats-all-yesterday', 'CampaignService@storeAllCampaignStatsYerterday')->name('storeStatsAllYerterday');
@@ -90,6 +92,10 @@ Route::group(['prefix' => 'service', 'as' => 'service.'], function(){
         Route::get('make/{userId}/{dateFrom}/{dateTo}', 'CampaignService@makeInvoice')->name('makeInvoice');
         Route::get('make-all/{dateFrom}/{dateTo}', 'CampaignService@makeInvoices')->name('makeInvoices');
         Route::get('generate', 'CampaignService@generateInvoices')->name('generateInvoices');
+    });
+
+    Route::group(['prefix' => 'cron', 'as' => 'cron.', 'namespace' => 'App\Services'], function(){
+        Route::get('every-min', 'CampaignService@everyMinCron')->name('everyMin');
     });
 
     Route::get('stats-invoice-yesterday', [App\Services\CampaignService::class, 'generateYesterdayStatsAndInvoiceRun'])->name('generateYesterdayStatsAndInvoice');

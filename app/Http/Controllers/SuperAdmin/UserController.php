@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Tracker;
 use Illuminate\Support\Facades\Hash;
+use App\Services\CampaignService;
 
 class UserController extends Controller
 {
@@ -144,5 +145,17 @@ class UserController extends Controller
     public function destroy($id)
     {
         //
+    }
+
+    public function importYesterdayData()
+    {
+        $output = $this->ajaxRes(true);
+        $campaignService = new CampaignService();
+        $campaignService->generateYesterdayStatsAndInvoiceRun();
+        $output->msg->text = 'Import process has been initialized';
+        $output->msg->type = 'success';
+        $output->msg->title = 'Successful';
+
+        return response()->json($output);
     }
 }

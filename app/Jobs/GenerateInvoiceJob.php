@@ -34,7 +34,7 @@ class GenerateInvoiceJob implements ShouldQueue
     public function handle(CampaignService $campaignService)
     {
         try{
-            $campaignService->generateInvoice();
+            $campaignService->generateInvoices();
         }catch(Exception $e){
             \Log::info("Invoice Job exception: ". ($e->getMessage()));
             //release the job to try again after 10s

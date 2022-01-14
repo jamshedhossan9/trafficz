@@ -6,6 +6,7 @@ use App\Jobs\CampaignGroupStatJob;
 use App\Jobs\GenerateInvoiceJob;
 use App\Jobs\StoreAllCampaignStatsXDaysJob;
 use App\Jobs\GenerateYesterdayStatsAndInvoiceJob;
+use App\Jobs\CampaignStatJob;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\Campaign;
@@ -15,9 +16,11 @@ use App\Models\CampaignGroupUser;
 use App\Models\CampaignTag;
 use App\Models\Invoice;
 use App\Models\Credit;
+use App\Models\MyLog;
 use Illuminate\Bus\Batch;
 use Illuminate\Support\Facades\Bus;
 use Throwable;
+use Carbon\Carbon;
 
 class CampaignService
 {
@@ -204,7 +207,7 @@ class CampaignService
 		$dayWeek = $days[$dayNo];
 		$dateFrom = null;
 		$dateTo = null;
-		if($dayWeek == 'monday'){ // thursday - sunday
+		if($dayWeek == 'monday'){ // thursday - sunday //monday
 			$dateFrom = date('Y-m-d', strtotime('-4 days', strtotime($currentDate)));
 			$dateTo = date('Y-m-d', strtotime('-1 days', strtotime($currentDate)));
 		}
@@ -298,17 +301,21 @@ class CampaignService
 
     public function storeAllCampaignStats($date)
     {
+        $campaignGroupStatJobs = [];
         $campaigns = Campaign::all();
         if(!empty($campaigns)){
             foreach($campaigns as $campaign){
-                $this->storeCampaignStats($campaign->id, $date);
-                sleep(5);
+                // $this->storeCampaignStats($campaign->id, $date);
+                $campaignGroupStatJobs[] = new CampaignStatJob($campaign->id, $date);
             }
+            $this->dipatchBatchJobs($campaignGroupStatJobs);
         }
+        
     }
 
-    public function storeCampaignStats($campaignId, $date)
+    public function storeCampaignStats($campaignId, $date, $save = true)
     {
+        sleep(20);
         $campaignId = intval($campaignId);
         $date = date('Y-m-d', strtotime($date));
         $dateFrom = $date;
@@ -327,7 +334,9 @@ class CampaignService
             $auth = $campaign->trackerAuth->auth;
             
             $stats = getTrackerCampaignStat($tracker, $auth, $dateFrom, $dateTo, $campaign->camp_id);
-            
+            if(!$save){
+                return $stats;
+            }
             
             $report->conversions = $stats['conversions'];
             $report->cost = $stats['cost'];
@@ -353,23 +362,31 @@ class CampaignService
     public function generateYesterdayStatsAndInvoice()
     {
         $this->storeAllCampaignStatsYerterday();
-        $this->generateInvoices();
         return;
     }
 
     public function generateYesterdayStatsAndInvoiceRun()
     {
-        GenerateYesterdayStatsAndInvoiceJob::dispatch();
+        $this->generateYesterdayStatsAndInvoice();
+        // GenerateYesterdayStatsAndInvoiceJob::dispatch();
     }
 
     public function storeAllCampaignStatsXDays($day)
     {
         $day = intval($day);
+        $start = Carbon::now();
         if($day){
             $pullDate = date('Y-m-d', strtotime('-1 days'));
             for($i = 0; $i < $day; $i++){
-                $this->storeAllCampaignStats($pullDate);
-                sleep(10);
+                $campaigns = Campaign::all();
+                if(!empty($campaigns)){
+                    foreach($campaigns as $campaign){
+                        // $this->storeCampaignStats($campaign->id, $pullDate);
+                        echo $start->format('Y-m-d H:i:s');
+                        echo '<br>';
+                        CampaignStatJob::dispatch($campaign->id, $pullDate);//->delay($start->addSeconds(20));
+                    }
+                }
                 $pullDate = date('Y-m-d', strtotime('-1 days', strtotime($pullDate)));
             }
         }
@@ -378,7 +395,46 @@ class CampaignService
 
     public function storeAllCampaignStatsXDaysRun($day)
     {
-        StoreAllCampaignStatsXDaysJob::dispatch($day);
+        $this->storeAllCampaignStatsXDays($day);
+        // StoreAllCampaignStatsXDaysJob::dispatch($day);
+    }
+
+    public function everyMinCron()
+    {
+        // $data = new MyLog();
+        // $data->type = "every min cron check foreign";
+        // $data->data = [
+        //     'date' => date("Y-m-d H:i:s"),
+        //     'source' => 'foreign hit'
+        // ];
+        // $data->save();
+
+        $time = date('H:i');
+        if($time == '01:00'){
+            $data = new MyLog();
+            $data->type = "daily 1am cron check foreign";
+            $data->data = [
+                'date' => date("Y-m-d H:i:s"),
+                'source' => 'foreign hit'
+            ];
+            $data->save();
+            $this->generateYesterdayStatsAndInvoiceRun();
+        }
+    }
+
+    public function getCampaignStats($campaignId, $dateFrom, $dateTo)
+    {
+        $reports = [];
+        $dateFrom = date('Y-m-d', strtotime($dateFrom));
+        $dateTo = date('Y-m-d', strtotime($dateTo));
+        $pullDate = $dateFrom;
+        while(true){
+            $reports[] = $this->storeCampaignStats($campaignId, $pullDate, false);
+            if($pullDate == $dateTo) break;
+            $pullDate = date('Y-m-d', strtotime('+1 days', strtotime($pullDate)));
+        }
+        $total = trackerCampaignStatSum($reports);
+        dd($reports, $total);
     }
 
     /**
