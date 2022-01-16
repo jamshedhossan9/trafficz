@@ -23,11 +23,13 @@ class DashboardController extends Controller
      */
     public function index($userId = 0)
     {
+        $this->isAdmin = false;
         if(isAdmin()){
             if($userId != 0){
                 $user = User::whereId($userId)->whereParentId($this->user->id)->first();
                 if(!empty($user)){
                     $this->user = $user;
+                    $this->isAdmin = true;
                 }
                 else{
                     abort(403);    
@@ -114,12 +116,13 @@ class DashboardController extends Controller
     public function getAllCampaignGroupStats(Request $request, $userId = 0)
     {
         $output = $this->ajaxRes();
-
+        $isAdmin = false;
         if(isAdmin()){
             if($userId != 0){
                 $user = User::whereId($userId)->whereParentId($this->user->id)->first();
                 if(!empty($user)){
                     $this->user = $user;
+                    $isAdmin = true;
                 }
                 else{
                     abort(403);    
@@ -204,16 +207,18 @@ class DashboardController extends Controller
                 $campaigntSats = $this->getTrackerCampaignStat($tracker, $auth, $dateFrom, $dateTo, $campaign->camp_id, $campaign->id);
                 $stats = $campaigntSats['all'];
                 $todayAmount += $campaigntSats['today']['cost'];
-                $apiResponses[] = [
-                    'id' => $campaign->id,
-                    'name' => $campaign->name,
-                    'tags' => $campaign->tags,
-                    'stats' => [
-                        'clicks' => $stats['visits'],
-                        'revenue' => number_format($stats['cost'], 2),
-                        'epc' => number_format($stats['cpv'], 2),
-                    ]
-                ];
+                if($isAdmin || $stats['visits'] > 0){
+                    $apiResponses[] = [
+                        'id' => $campaign->id,
+                        'name' => $campaign->name,
+                        'tags' => $campaign->tags,
+                        'stats' => [
+                            'clicks' => $stats['visits'],
+                            'revenue' => number_format($stats['cost'], 2),
+                            'epc' => number_format($stats['cpv'], 2),
+                        ]
+                    ];
+                }
                 $apiResponsesTotals[] = $stats;
             }
 

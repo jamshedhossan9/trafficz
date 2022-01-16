@@ -452,6 +452,14 @@
                             `;  
                             groupDom.find('.stats-table tbody').html(tbody);
                             groupDom.find('.stats-table tfoot').html(tfoot);
+                            @if (!$isAdmin)
+                            if(_parseInt(total.clicks) == 0){
+                                groupDom.addClass('hidden');
+                            }
+                            else{
+                                groupDom.removeClass('hidden');
+                            }
+                            @endif
                         }
                     }
                     if(el.groupSelection == 'all'){
