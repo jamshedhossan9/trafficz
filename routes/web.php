@@ -84,7 +84,7 @@ Route::get('check-cron-status', [App\Http\Controllers\User\DashboardController::
 Route::group(['prefix' => 'service', 'as' => 'service.'], function(){
     Route::group(['prefix' => 'campaign', 'as' => 'campaign.', 'namespace' => 'App\Services'], function(){
         Route::get('get-stats/{campaignId}/{dateFrom}/{dateTo}', 'CampaignService@getCampaignStats')->name('getStats');
-        Route::get('store-stats/{campaignId}/{date}', 'CampaignService@storeCampaignStats')->name('storeStats');
+        Route::get('store-stats/{campaignId}/{date}', 'CampaignService@storeCampaignStatsInstant')->name('storeStats');
         Route::get('store-stats-all/{date}', 'CampaignService@storeAllCampaignStats')->name('storeStatsAll');
         Route::get('store-stats-all-yesterday', 'CampaignService@storeAllCampaignStatsYerterday')->name('storeStatsAllYerterday');
     });

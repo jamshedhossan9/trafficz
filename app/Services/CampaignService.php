@@ -313,9 +313,9 @@ class CampaignService
         
     }
 
-    public function storeCampaignStats($campaignId, $date, $save = true)
+    public function storeCampaignStatsInstant($campaignId, $date, $save = true)
     {
-        sleep(20);
+        
         $campaignId = intval($campaignId);
         $date = date('Y-m-d', strtotime($date));
         $dateFrom = $date;
@@ -354,9 +354,17 @@ class CampaignService
             $report->ictr = $stats['ictr'];
             $report->cr = $stats['cr'];
 
-            $report->save();
+            if($stats['visits'] > 0){
+                $report->save();
+            }
             
         }
+    }
+
+    public function storeCampaignStats($campaignId, $date, $save = true)
+    {
+        sleep(20);
+        $this->storeCampaignStatsInstant($campaignId, $date, $save);
     }
 
     public function generateYesterdayStatsAndInvoice()
@@ -410,9 +418,9 @@ class CampaignService
         // $data->save();
 
         $time = date('H:i');
-        if($time == '01:00'){
+        if($time == '12:30'){
             $data = new MyLog();
-            $data->type = "daily 1am cron check foreign";
+            $data->type = "daily 12:30am cron check foreign";
             $data->data = [
                 'date' => date("Y-m-d H:i:s"),
                 'source' => 'foreign hit'

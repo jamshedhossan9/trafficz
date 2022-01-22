@@ -122,7 +122,7 @@
                         @foreach ($group->campaigns as $campaign)
                             <li class="item" title="{{$campaign->trackerAuth->trackerUser->tracker->name}} ({{$campaign->trackerAuth->name}}) {{$campaign->camp_id}}">
                                 {{$campaign->name}} ({{$campaign->trackerAuth->name}}) 
-                                <a href="#" class="edit-campaign-from-group tool-icon" data-id="{{$campaign->id}}"><span class="ti-pencil"></span></a>
+                                <a href="#{{$campaign->id}}" class="edit-campaign-from-group tool-icon" data-id="{{$campaign->id}}"><span class="ti-pencil"></span></a>
                                 <a href="#" class="delete-campaign-from-group tool-icon m-l-5" data-id="{{$campaign->id}}"><span class="ti-trash"></span></a>
                             </li>
                         @endforeach
@@ -416,7 +416,7 @@
                             for(var item of group.campaigns){
                                 campaignsHtml += `<li class="item" title="`+item.tracker_auth.tracker_user.tracker.name+` (`+item.tracker_auth.name+`) `+item.camp_id+`">
                                     `+item.name+` (`+item.tracker_auth.name+`) 
-                                    <a href="#" class="edit-campaign-from-group tool-icon" data-id="`+item.id+`"><span class="ti-pencil"></span></a>
+                                    <a href="#`+item.id+`" class="edit-campaign-from-group tool-icon" data-id="`+item.id+`"><span class="ti-pencil"></span></a>
                                     <a href="#" class="delete-campaign-from-group tool-icon m-l-5" data-id="`+item.id+`"><span class="ti-trash"></span></a>
                                 </li>`;
                             }
