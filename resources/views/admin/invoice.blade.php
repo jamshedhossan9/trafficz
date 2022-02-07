@@ -57,7 +57,7 @@
                                         @endif
                                     </td>
                                     @if($invoice->handled)
-                                        <td>{{$invoice->method}}</td><td>{{$invoice->paid_on}}</td><td>{{$invoice->transaction_code}}</td><td></td><td></td>
+                                        <td>{{$invoice->method}}</td><td>{{$invoice->paid_on}}</td><td>{{$invoice->transaction_code}}</td><td colspan="2">{{$invoice->comment}}</td>
                                     @else
                                         <td class="payment_method_area">
                                             <select class="form-control payment_method">
@@ -72,7 +72,8 @@
                                             </div>
                                         </td>
                                         <td class="transaction_area">
-                                            <input class="form-control transaction" placeholder="Transaction code">
+                                            <input class="form-control transaction m-b-10" placeholder="Transaction code">
+                                            <input class="form-control comment" placeholder="Comment">
                                         </td>
                                         <td>
                                             <a class="btn btn-info invoice_update_btn" href="#">Update</a>
@@ -130,6 +131,10 @@
                               <label>Transaction Code</label>
                               <input class="form-control transaction" name="transaction" placeholder="Transaction code" required>
                           </div>
+                          <div class="form-group">
+                              <label>Comment</label>
+                              <input class="form-control comment" name="comment" placeholder="Comment">
+                          </div>
                       </div>
                   </div>
                   <div class="modal-footer">
@@ -162,6 +167,7 @@
 		    	var payment_method = area.find('select.payment_method').val();
 		    	var datepicker_field = area.find('.datepicker_field').val();
 		    	var transaction = area.find('.transaction').val();
+		    	var comment = area.find('.comment').val();
                 var data = {
                     _token: csrfToken,
                     _method: 'PUT',
@@ -169,6 +175,7 @@
                     payment_method: payment_method,
                     date: datepicker_field,
                     transaction: transaction,
+                    comment: comment,
                 };
 		    	ajax({
 		    		url: listUrls.adminInvoiceUpdate(id),
@@ -180,6 +187,8 @@
                         el.area.find('.transaction_area').html(el.data.transaction);
                         el.area.find('.invoice_update_btn').remove();
                         el.area.find('.invoice_update_checkbox_con').remove();
+                        el.area.find('>td').last().remove();
+                        el.area.find('>td').last().attr('colspan', 2).html(el.data.comment);
 		    		}
 		    	},{area:area, data:data});
 		    });
@@ -191,6 +200,7 @@
 		    		payment_method: form.find('select.payment_method').val(),
 		    		date: form.find('.datepicker_field').val(),
 		    		transaction: form.find('.transaction').val(),
+		    		comment: form.find('.comment').val(),
 		    	};
 		    	var checkboxes = $('.invoice_update_form .invoice_update_checkbox:checked');
 		    	if(checkboxes.length){
@@ -202,6 +212,7 @@
 			    			payment_method: formData.payment_method,
 			    			date: formData.date,
 			    			transaction: formData.transaction,
+			    			comment: formData.comment,
 		    			};
 		    			data.push(dataSingle);
 		    		});

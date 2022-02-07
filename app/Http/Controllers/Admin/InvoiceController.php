@@ -87,6 +87,10 @@ class InvoiceController extends Controller
         $payment_method = $request->input('payment_method');
         $date = $request->input('date');
         $transaction = $request->input('transaction');
+        $comment = '';
+        if($request->has('comment')){
+            $comment = trim($request->input('comment'));
+        }
         
         $newInvoice = Invoice::find($id);
         if(!empty($newInvoice)){
@@ -96,6 +100,7 @@ class InvoiceController extends Controller
                 $newInvoice->paid_on = $date;
                 $newInvoice->transaction_code = $transaction;
                 $newInvoice->handled = true;
+                $newInvoice->comment = $comment;
                 $newInvoice->save();
                 if($newInvoice){
                     $output->status = true;
@@ -139,9 +144,10 @@ class InvoiceController extends Controller
             foreach ($invoiceInputs as $invoice) {
                 $id = !empty($invoice['id']) ? $invoice['id'] : '';
                 $id = intval($id);
-                $payment_method = !empty($invoice['payment_method']) ? $invoice['payment_method'] : '';
+                $payment_method = !empty($invoice['payment_method']) ? trim($invoice['payment_method']) : '';
                 $date = !empty($invoice['date']) ? $invoice['date'] : '';
-                $transaction = !empty($invoice['transaction']) ? $invoice['transaction'] : '';
+                $transaction = !empty($invoice['transaction']) ? trim($invoice['transaction']) : '';
+                $comment = !empty($invoice['comment']) ? trim($invoice['comment']) : '';
                 if($id != 0 && $payment_method != '' && $date != '' && $transaction != '' ){
                     $newInvoice = Invoice::find($id);
                     if(!empty($newInvoice)){
@@ -151,6 +157,7 @@ class InvoiceController extends Controller
                             $newInvoice->paid_on = $date;
                             $newInvoice->transaction_code = $transaction;
                             $newInvoice->handled = true;
+                            $newInvoice->comment = $comment;
                             $newInvoice->save();
                             if($newInvoice){
                                 $updatedInvoices++;

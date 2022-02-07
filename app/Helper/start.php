@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Models\MyLog;
 
 function isSuperAdmin(){
     $roleId = auth()->user()->roles->first()->pivot->role_id;
@@ -277,6 +278,7 @@ function getVoluumReport($auth, $query, $limit = 1000, $offset = 0)
         //print_r($result);
 
         curl_close($ch);
+        
         return !empty($result['bodyArray']) ? $result['bodyArray'] : false;
     }
     return false;
@@ -320,6 +322,16 @@ function getVoluumCampaignStat($auth, $from, $to, $id){
     if($result && !empty($result['totals'])){
         $stats = $result['totals'];
     }
+    $data = new MyLog();
+    $data->type = "voluum api";
+    $data->data = [
+        'date' => date("Y-m-d H:i:s"),
+        'dateApi' => $from,
+        'id' => $id,
+        'postData' => $query,
+        'response' => $result,
+    ];
+    $data->save();
     return $stats;
 }
 
@@ -379,9 +391,27 @@ function getBinomCampaignStat($auth, $from, $to, $id){
 
     $response = curl_exec($curl);
     if(curl_errno($curl)){
-
+        $data = new MyLog();
+        $data->type = "binom api";
+        $data->data = [
+            'date' => date("Y-m-d H:i:s"),
+            'id' => $id,
+            'postData' => $postData,
+            'response' => curl_error($curl),
+            'error' => 'curl error',
+        ];
+        $data->save();
     }
     else{
+        $data = new MyLog();
+        $data->type = "binom api";
+        $data->data = [
+            'date' => date("Y-m-d H:i:s"),
+            'id' => $id,
+            'postData' => $postData,
+            'response' => $response,
+        ];
+        $data->save();
         $response = json_decode($response, true);
         // dd($response);
         $status = empty($response['status']) ? 'success' : $response['status'];

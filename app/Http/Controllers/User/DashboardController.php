@@ -604,6 +604,96 @@ class DashboardController extends Controller
         return $output;
     }
 
+    public function invoicesGroup()
+    {
+        $invoices = Invoice::whereUserId($this->user->id)->orderBy('id', 'desc')->get();
+        $groupInvoice = [];
+        $tempGroup = [
+            'group' => [
+                'start_date' => '',
+                'end_date' => '',
+                'description' => '',
+                'total' => 0,
+                'method' => '',
+                'paid_on' => '',
+                'transaction_code' => '',
+                'comment' => '',
+                'handled' => false,
+            ],
+            'items' => []
+        ];
+        $lastGroup = [];
+        $lastTraxId = null;
+        if(!empty($invoices)){
+            foreach($invoices as $invoice){
+                if($invoice->handled){
+                    if($lastTraxId == null){
+                        // echo 'adding '.$invoice->id.' in group <br>';
+                        $lastGroup = $tempGroup;
+                        $lastGroup['items'][] = $invoice;
+                        $lastTraxId = trim($invoice->transaction_code);
+                    }
+                    else{
+                        if($lastTraxId == trim($invoice->transaction_code)){
+                            // echo 'adding '.$invoice->id.' in group <br>';
+                            $lastGroup['items'][] = $invoice;
+                        }
+                        else{
+                            // echo 'adding last '.$lastTraxId.' invoice in group <br>';
+                            $groupInvoice[] = $lastGroup;       
+                            $lastGroup = $tempGroup;
+                            $lastGroup['items'][] = $invoice;
+                            $lastTraxId = trim($invoice->transaction_code); 
+                        }
+                    }
+                }
+                else{
+                    if(!empty($lastGroup)){
+                        // echo 'adding last '.$lastTraxId.' invoice in group <br>';
+                        $groupInvoice[] = $lastGroup;
+                    }
+                    // echo 'adding '.$invoice->id.' as individual <br>';
+                    $lastGroup = $tempGroup;
+                    $lastGroup['items'][] = $invoice;
+                    $lastTraxId = null;
+                    $groupInvoice[] = $lastGroup;
+                    $lastGroup = [];
+                }
+            }
+        }
+
+        if(!empty($lastGroup)){
+            // echo 'adding last '.$lastTraxId.' invoice in group <br>';
+            $groupInvoice[] = $lastGroup;
+        }
+
+        $groupInvoice2 = [];
+        foreach($groupInvoice as $key => $group){
+            if(!empty($group['items'])){
+                $group['group']['start_date'] = end($group['items'])->start_date;
+                $group['group']['end_date'] = $group['items'][0]->end_date;
+                $group['group']['description'] = $group['items'][0]->description;
+                $group['group']['method'] = $group['items'][0]->method;
+                $group['group']['paid_on'] = $group['items'][0]->paid_on;
+                $group['group']['transaction_code'] = $group['items'][0]->transaction_code;
+                $group['group']['comment'] = $group['items'][0]->comment;
+                $group['group']['handled'] = $group['items'][0]->handled;
+                foreach($group['items'] as $item){
+                    $group['group']['total'] += $item->total;
+                }
+                $groupInvoice2[] = $group;
+            }
+
+        }
+
+        $invoices = json_decode(json_encode($invoices), true);
+        $groupInvoice2 = json_decode(json_encode($groupInvoice2), true);
+        // dd($invoices, $groupInvoice2);
+        $this->invoices = $invoices;
+        $this->groupInvoices = $groupInvoice2;
+        return view('user.invoice-group', $this->data);
+    }
+
     public function invoices()
     {
         $this->invoices = Invoice::whereUserId($this->user->id)->orderBy('id', 'desc')->get();

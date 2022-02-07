@@ -304,13 +304,61 @@ class CampaignService
         $campaignGroupStatJobs = [];
         $campaigns = Campaign::all();
         if(!empty($campaigns)){
-            foreach($campaigns as $campaign){
-                // $this->storeCampaignStats($campaign->id, $date);
-                $campaignGroupStatJobs[] = new CampaignStatJob($campaign->id, $date);
+            for($i = 0; $i < 5; $i++){
+                foreach($campaigns as $campaign){
+                    // $this->storeCampaignStats($campaign->id, $date);
+                    $campaignGroupStatJobs[] = new CampaignStatJob($campaign->id, $date);
+                }
             }
             $this->dipatchBatchJobs($campaignGroupStatJobs);
         }
         
+    }
+
+    public function storeCampaignStatsForce($campaignId, $date, $save = true)
+    {
+        
+        $campaignId = intval($campaignId);
+        $date = date('Y-m-d', strtotime($date));
+        $dateFrom = $date;
+        $dateTo = $date;
+        $campaign = Campaign::with('trackerAuth.trackerUser.tracker')->find($campaignId);
+        if(!empty($campaign)){
+            $report = $campaign->reportByDate($dateFrom)->first();
+            if(empty($report)){
+                $report = new CampaignGroupReport();
+                $report->campaign_group_id = $campaign->campaign_group_id ;
+                $report->campaign_id = $campaign->id;
+                $report->date = $dateFrom;
+            }
+
+            $tracker = $campaign->trackerAuth->trackerUser->tracker->slug;
+            $auth = $campaign->trackerAuth->auth;
+            
+            $stats = getTrackerCampaignStat($tracker, $auth, $dateFrom, $dateTo, $campaign->camp_id);
+            if(!$save){
+                return $stats;
+            }
+            
+            $report->conversions = $stats['conversions'];
+            $report->cost = $stats['cost'];
+            $report->revenue = $stats['revenue'];
+            $report->profit = $stats['profit'];
+            $report->impressions = $stats['impressions'];
+            $report->visits = $stats['visits'];
+            $report->clicks = $stats['clicks'];
+            $report->epc = $stats['epc'];
+            $report->cpc = $stats['cpc'];
+            $report->epv = $stats['epv'];
+            $report->cpv = $stats['cpv'];
+            $report->roi = $stats['roi'];
+            $report->ctr = $stats['ctr'];
+            $report->ictr = $stats['ictr'];
+            $report->cr = $stats['cr'];
+
+            $report->save();
+            
+        }
     }
 
     public function storeCampaignStatsInstant($campaignId, $date, $save = true)
@@ -363,8 +411,21 @@ class CampaignService
 
     public function storeCampaignStats($campaignId, $date, $save = true)
     {
-        sleep(20);
-        $this->storeCampaignStatsInstant($campaignId, $date, $save);
+        $pull = false;
+        $campaignId = intval($campaignId);
+        $date = date('Y-m-d', strtotime($date));
+        $dateFrom = $date;
+        $campaign = Campaign::with('trackerAuth.trackerUser.tracker')->find($campaignId);
+        if(!empty($campaign)){
+            $report = $campaign->reportByDate($dateFrom)->first();
+            if(empty($report)){
+                $pull = true;
+            }
+        }
+        if($pull){
+            sleep(40);
+            $this->storeCampaignStatsInstant($campaignId, $date, $save);
+        }
     }
 
     public function generateYesterdayStatsAndInvoice()
@@ -418,7 +479,7 @@ class CampaignService
         // $data->save();
 
         $time = date('H:i');
-        if($time == '12:30'){
+        if($time == '00:30'){
             $data = new MyLog();
             $data->type = "daily 12:30am cron check foreign";
             $data->data = [

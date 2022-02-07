@@ -17,6 +17,8 @@ class CampaignStatJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public $timeout = 120;
+
     protected $campaignId;
     protected $date;
     /**

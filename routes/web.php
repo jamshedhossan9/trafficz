@@ -67,7 +67,8 @@ Route::group(['middleware' => 'auth'], function(){
         Route::post('campaign-group-stats', 'DashboardController@getAllCampaignGroupStats')->name('getAllCampaignGroupStats');
         Route::post('campaign-hourly-stats', 'DashboardController@getCampaignHourlyStats')->name('getCampaignHourlyStats');
         Route::post('all-campaign-hourly-stats', 'DashboardController@getAllCampaignHourlyStats')->name('getAllCampaignHourlyStats');
-        Route::get('invoices', 'DashboardController@invoices')->name('invoices');
+        Route::get('invoices', 'DashboardController@invoicesGroup')->name('invoices'); //invoices
+        Route::get('invoices-group', 'DashboardController@invoicesGroup')->name('invoicesGroup');
     }); 
     Route::get('campaign-search-stats', [App\Http\Controllers\User\DashboardController::class, 'campaignService'])->name('public.campaingService');
     
@@ -84,7 +85,7 @@ Route::get('check-cron-status', [App\Http\Controllers\User\DashboardController::
 Route::group(['prefix' => 'service', 'as' => 'service.'], function(){
     Route::group(['prefix' => 'campaign', 'as' => 'campaign.', 'namespace' => 'App\Services'], function(){
         Route::get('get-stats/{campaignId}/{dateFrom}/{dateTo}', 'CampaignService@getCampaignStats')->name('getStats');
-        Route::get('store-stats/{campaignId}/{date}', 'CampaignService@storeCampaignStatsInstant')->name('storeStats');
+        Route::get('store-stats/{campaignId}/{date}', 'CampaignService@storeCampaignStatsForce')->name('storeStats');
         Route::get('store-stats-all/{date}', 'CampaignService@storeAllCampaignStats')->name('storeStatsAll');
         Route::get('store-stats-all-yesterday', 'CampaignService@storeAllCampaignStatsYerterday')->name('storeStatsAllYerterday');
     });
