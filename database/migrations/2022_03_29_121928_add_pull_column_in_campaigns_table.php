@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AlterCommentInvoicesTable extends Migration
+class AddPullColumnInCampaignsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,8 +13,8 @@ class AlterCommentInvoicesTable extends Migration
      */
     public function up()
     {
-        Schema::table('invoices', function (Blueprint $table) {
-            $table->text('comment')->nullable()->after('handled');
+        Schema::table('campaigns', function (Blueprint $table) {
+            $table->boolean('pull')->default(1);
         });
     }
 
@@ -25,7 +25,7 @@ class AlterCommentInvoicesTable extends Migration
      */
     public function down()
     {
-        Schema::table('invoices', function (Blueprint $table) {
+        Schema::table('campaigns', function (Blueprint $table) {
             //
         });
     }

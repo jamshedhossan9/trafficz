@@ -473,22 +473,30 @@ class DashboardController extends Controller
         ];
         $todayDate = date('Y-m-d');
         $reports = [];
-        $reportDB = CampaignGroupReport::where('campaign_id', $campaignId)->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->orderBy('date', 'asc')->get();
-        if(!empty($reportDB)){
-            $reports = $reportDB->toArray();
-        }
-        if($dateTo == $todayDate){
-            $searchTodayInApi = true;
-            if(!empty($reports)){
-                $lastReportDate = end($reports)['date'];
-                if($lastReportDate == $dateTo){
-                    $searchTodayInApi = false;
-                }
+        $campaign = Campaign::find($campaignId);
+        if($campaign){
+            $reportDB = CampaignGroupReport::where('campaign_id', $campaignId)->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->orderBy('date', 'asc')->get();
+            if(!empty($reportDB)){
+                $reports = $reportDB->toArray();
             }
-            if($searchTodayInApi){
-                $todayStats = getTrackerCampaignStat($tracker, $auth, $todayDate, $todayDate, $trackerCampId);
-                $reports[] = $todayStats;
-                $output['today'] = $todayStats;
+            if($dateTo == $todayDate){
+                $searchTodayInApi = true;
+                if(!empty($reports)){
+                    $lastReportDate = end($reports)['date'];
+                    if($lastReportDate == $dateTo){
+                        $searchTodayInApi = false;
+                    }
+                }
+                if($searchTodayInApi){
+                    if($campaign->pull){
+                        $todayStats = getTrackerCampaignStat($tracker, $auth, $todayDate, $todayDate, $trackerCampId);
+                    }
+                    else{
+                        $todayStats = trackerCampaignStatDefaults();
+                    }
+                    $reports[] = $todayStats;
+                    $output['today'] = $todayStats;
+                }
             }
         }
         $totals = trackerCampaignStatSum($reports);

@@ -51,6 +51,7 @@ Route::group(['middleware' => 'auth'], function(){
             Route::post('campaign-group/add-credit', 'CampaignController@addCredit')->name('addCreditToGroup');
             Route::get('campaign-group/{id}/list-credit', 'CampaignController@listCredit')->name('listCreditFromGroup');
             Route::get('campaign-group/credit/{id}', 'CampaignController@deleteCredit')->name('deleteCreditFromGroup');
+            Route::post('campaign-group/campaign/{action}/{id}', 'CampaignController@campaignTogglePlay')->name('campaignTogglePlay')->where('action', 'play|pause');
             Route::get('invoices/user/{id}', 'InvoiceController@byUser')->name('invoicesByUser');
             Route::post('invoices/bulk-update', 'InvoiceController@bulkUpdate')->name('invoiceBulkUpdate');
         });   

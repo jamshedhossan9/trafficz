@@ -97,11 +97,22 @@
         .campaign_list .item .tool-icon:hover{
             opacity: 1;
         }
-        .campaign_list .item:hover .tool-icon.delete-campaign-from-group:hover{
+        .campaign_list .item:hover .tool-icon.delete-campaign-from-group:hover,
+        .campaign_list .item:hover .tool-icon.pause-campaign-in-group:hover{
             color: #ba411d;
         }
         .campaign_list .item:hover .tool-icon.edit-campaign-from-group:hover{
             color: #048dca;
+        }
+        .campaign_list .item:hover .tool-icon.play-campaign-in-group:hover{
+            color: #09942c;
+        }
+        .campaign_list .item:hover .tool-icon.pull-campaign-stats-by-date:hover{
+            color: #0d7edb;
+        }
+        .campaign_group .item_list .list .item[data-pull="true"] .play-campaign-in-group,
+        .campaign_group .item_list .list .item[data-pull="false"] .pause-campaign-in-group{
+            display: none;
         }
     </style>
 @endpush
@@ -120,10 +131,13 @@
                     <div class="item_title">Campaigns ({{count($group->campaigns)}}):</div>
                     <ul class="list">
                         @foreach ($group->campaigns as $campaign)
-                            <li class="item" title="{{$campaign->trackerAuth->trackerUser->tracker->name}} ({{$campaign->trackerAuth->name}}) {{$campaign->camp_id}}">
+                            <li class="item" title="{{$campaign->trackerAuth->trackerUser->tracker->name}} ({{$campaign->trackerAuth->name}}) {{$campaign->camp_id}}" data-pull="{{$campaign->pull ? 'true' : 'false'}}">
                                 {{$campaign->name}} ({{$campaign->trackerAuth->name}}) 
-                                <a href="#{{$campaign->id}}" class="edit-campaign-from-group tool-icon" data-id="{{$campaign->id}}"><span class="ti-pencil"></span></a>
-                                <a href="#" class="delete-campaign-from-group tool-icon m-l-5" data-id="{{$campaign->id}}"><span class="ti-trash"></span></a>
+                                <a href="#{{$campaign->id}}" class="edit-campaign-from-group tool-icon" data-id="{{$campaign->id}}" title="Edit"><span class="ti-pencil"></span></a>
+                                <a href="#" class="delete-campaign-from-group tool-icon m-l-5" data-id="{{$campaign->id}}" title="Delete"><span class="ti-trash"></span></a>
+                                <a href="#" class="play-campaign-in-group tool-icon m-l-5" data-id="{{$campaign->id}}" title="Enable Stats pulling"><span class="ti-control-play"></span></a>
+                                <a href="#" class="pause-campaign-in-group tool-icon m-l-5" data-id="{{$campaign->id}}" title="Pause Stats pulling"><span class="ti-control-pause"></span></a>
+                                <a href="#" class="pull-campaign-stats-by-date tool-icon m-l-5" data-id="{{$campaign->id}}" title="Pull Stats by Date"><span class="ti-magnet"></span></a>
                             </li>
                         @endforeach
                     </ul>
@@ -362,6 +376,42 @@
         </div>
     </div>
 
+    <div id="campaignPullStatsModal" class="modal fade" role="dialog" aria-labelledby="campaignGroupAddCreditModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                    <h4 class="modal-title" id="myModalLabel">Pull Stats</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="clearfix">
+                        <div class="clearfix">
+                            <form action="" method="POST" 
+                                class="form-horizontal pull_stats_by_date_form m-0"
+                                data-success="campaign-group-add-credit-success"
+                                >
+                                @csrf
+                                <input type="hidden" name="campaign_id" value="">
+                                <div class="form-group">
+                                    <label for="" class="control-label">Date</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control pull_stats_datepicker"  name="date" required autocomplete="off" placeholder="Choose date">
+                                        <div class="input-group-btn">
+                                            <button class="btn btn-info submit_btn" type="submit">Pull</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-inverse waves-effect" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 @endsection
 
 @push('js')
@@ -414,10 +464,13 @@
                         <div class="item_title">Campaigns (`+(group.campaigns.length)+`):</div>
                         <ul class="list">`;
                             for(var item of group.campaigns){
-                                campaignsHtml += `<li class="item" title="`+item.tracker_auth.tracker_user.tracker.name+` (`+item.tracker_auth.name+`) `+item.camp_id+`">
+                                campaignsHtml += `<li class="item" title="`+item.tracker_auth.tracker_user.tracker.name+` (`+item.tracker_auth.name+`) `+item.camp_id+`" data-pull="`+(item.pull ? 'true' : 'false')+`">
                                     `+item.name+` (`+item.tracker_auth.name+`) 
-                                    <a href="#`+item.id+`" class="edit-campaign-from-group tool-icon" data-id="`+item.id+`"><span class="ti-pencil"></span></a>
-                                    <a href="#" class="delete-campaign-from-group tool-icon m-l-5" data-id="`+item.id+`"><span class="ti-trash"></span></a>
+                                    <a href="#`+item.id+`" class="edit-campaign-from-group tool-icon" data-id="`+item.id+`" title="Edit"><span class="ti-pencil"></span></a>
+                                    <a href="#" class="delete-campaign-from-group tool-icon m-l-5" data-id="`+item.id+`" title="Delete"><span class="ti-trash"></span></a>
+                                    <a href="#" class="play-campaign-in-group tool-icon m-l-5" data-id="`+item.id+`" title="Enable Stats pulling"><span class="ti-control-play"></span></a>
+                                    <a href="#" class="pause-campaign-in-group tool-icon m-l-5" data-id="`+item.id+`" title="Pause Stats pulling"><span class="ti-control-pause"></span></a>
+                                    <a href="#" class="pull-campaign-stats-by-date tool-icon m-l-5" data-id="`+item.id+`" title="Pull Stats by Date"><span class="ti-magnet"></span></a>
                                 </li>`;
                             }
                             campaignsHtml += `
@@ -492,6 +545,12 @@
             autoclose: true,
             todayHighlight: true,
             format: 'yyyy-mm-dd',
+        });
+        
+        $('.pull_stats_datepicker').datepicker({
+            autoclose: true,
+            format: 'yyyy-mm-dd',
+            endDate: moment().subtract(1, 'days').format('YYYY-MM-DD')
         });
 
         $(document).on('click', '.add-credit-btn', function(e){
@@ -695,6 +754,67 @@
             });
 
         });
+
+        $(document).on('click', '.play-campaign-in-group, .pause-campaign-in-group', function(e){
+            e.preventDefault()
+            var el = $(this);
+            var id = el.attr('data-id');
+            var action = 'play';
+            if(el.hasClass('pause-campaign-in-group')){
+                action = 'pause';
+            }
+            ajax({
+                blockUi: true,
+                type: 'post',
+                url: action == 'play' ? listUrls.adminCampaignPlay(id) :  listUrls.adminCampaignPause(id),
+                data: {_token: csrfToken},
+                _success: function(resp, prop){
+                    if(resp.data){
+                        prop.el.closest('.item').attr('data-pull', resp.data.pull);
+                    }
+                },
+            }, {el:el})
+        });
+
+        $(document).on('click', '.pull-campaign-stats-by-date', function(e){
+            e.preventDefault()
+            var el = $(this);
+            var id = el.attr('data-id');
+            var modal = $('#campaignPullStatsModal');
+            var form = $('.pull_stats_by_date_form');
+            form.find('[name="campaign_id"]').val(id);
+            // $('.pull_stats_datepicker').datepicker({
+            //     autoclose: true,
+            //     format: 'yyyy-mm-dd',
+            //     endDate: moment().subtract(1, 'days').format('YYYY-MM-DD'),
+            //     defaultViewDate: moment().subtract(1, 'days').format('YYYY-MM-DD'),
+            // });
+            $('.pull_stats_datepicker').datepicker('update', moment().subtract(1, 'days').format('YYYY-MM-DD'));
+            modal.modal('show');
+        });
+
+        $(document).on('submit', '.pull_stats_by_date_form', function(e){
+            e.preventDefault();
+            var form = $(this);
+            var modal = $('#campaignPullStatsModal');
+            var submitBtn = form.find('.submit_btn');
+            loadBtn(submitBtn);
+            var campaignId = form.find('[name="campaign_id"]').val().trim();
+            var date = form.find('[name="date"]').val().trim();
+            ajax({
+                blockUi: false,
+                dataType: 'text',
+                url: listUrls.serviceCampaignStoreStats({campaignId: campaignId, date: date}),
+                success: function(resp){
+                    Swal.fire('Queued', 'Stats are queued to pull', 'success');
+                    modal.modal('hide');
+                },
+                complete: function(){
+                    unloadBtn(submitBtn);
+                }
+            })
+        });
+
     </script>
 @endpush
 

@@ -427,4 +427,40 @@ class CampaignController extends Controller
 
         return response()->json($output);
     }
+
+    public function campaignTogglePlay(Request $request, $action, $id)
+    {
+        $output = $this->ajaxRes(true);
+        $output->data['pull'] = 'true';
+        $action = trim($action);
+        $action = strtolower($action);
+        $campaign = Campaign::find($id);
+        if(!empty($campaign)){
+            $output->msg->title = 'Successful';
+            $output->msg->text = 'Stats pulling is enabled';
+            $output->msg->type = 'success';
+            $output->status = true;
+            if($action == 'play'){
+                $output->data['pull'] = 'true';
+                $campaign->pull = true;
+                
+            }
+            else if($action == 'pause'){
+                $output->data['pull'] = 'false';
+                $campaign->pull = false;
+                $output->msg->text = 'Stats pulling is paused';
+            }
+            else{
+                $output->msg->text = 'Unknown action';
+                $output->msg->title = 'Failed';
+                $output->msg->type = 'error';
+                $output->status = false;
+            }
+            $campaign->save();
+        }
+        else{
+            $output->msg->text = 'Campaign not found';
+        }
+        return response()->json($output);
+    }
 }

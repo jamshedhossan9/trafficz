@@ -10,6 +10,10 @@ class Campaign extends Model
 {
     use HasFactory;
 
+    protected $casts = [
+        'pull' => 'boolean',
+    ];
+
     public function campaignGroup()
     {
         return $this->belongsTo(CampaignGroup::class);

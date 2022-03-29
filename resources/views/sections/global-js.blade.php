@@ -12,6 +12,19 @@ var listUrlId = function(url){
     }
 }
 
+var listUrlParams = function(url){
+    return function(obj){
+        if(typeof obj === "undefined") obj = {};
+        var tempUrl = url;
+        for(var x in obj){
+            if(obj.hasOwnProperty(x)){
+                tempUrl = tempUrl.replace('%5B%5B'+x+'%5D%5D', obj[x]);
+            }
+        }
+        return tempUrl;
+    }
+}
+
 var listUrls = {
     @if(isAdmin())
     adminAddedUsersToGroup: listUrlId('{{ route('admin.addedUsersToGroup',':id') }}'),
@@ -28,6 +41,9 @@ var listUrls = {
     adminGetTracker: listUrlId('{{ route('admin.trackers.edit',':id') }}'),
     adminDeleteTracker: listUrlId('{{ route('admin.trackers.destroy',':id') }}'),
     adminGetCampaignFromGroup: listUrlId('{{ route('admin.getCampaignFromGroup',':id') }}'),
+    adminCampaignPlay: listUrlId('{{ route('admin.campaignTogglePlay',['action' => 'play', 'id' => ':id']) }}'),
+    adminCampaignPause: listUrlId('{{ route('admin.campaignTogglePlay',['action' => 'pause', 'id' => ':id']) }}'),
+    serviceCampaignStoreStats: listUrlParams('{{ route('service.campaign.storeStats',['campaignId' => '[[campaignId]]', 'date' => '[[date]]']) }}'),
     @endif
     @if(isUser())
     getAllCampaignGroupStats: '{{ route('user.getAllCampaignGroupStats') }}',

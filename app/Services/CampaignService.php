@@ -47,7 +47,7 @@ class CampaignService
             foreach($campaignGroup->campaigns as $campaign){
                 $log['campaigns'][$campaign->id][$dateFrom] = ['existing' => null, 'new' => null];
                 $checkExists = $campaign->reportByDate($dateFrom)->first();
-                if(empty($checkExists)){
+                if(empty($checkExists) && $campaign->pull){
                     $tracker = $campaign->trackerAuth->trackerUser->tracker->slug;
                     $auth = $campaign->trackerAuth->auth;
                     
@@ -416,7 +416,7 @@ class CampaignService
         $date = date('Y-m-d', strtotime($date));
         $dateFrom = $date;
         $campaign = Campaign::with('trackerAuth.trackerUser.tracker')->find($campaignId);
-        if(!empty($campaign)){
+        if(!empty($campaign) && $campaign->pull){
             $report = $campaign->reportByDate($dateFrom)->first();
             if(empty($report)){
                 $pull = true;

@@ -76,7 +76,12 @@
                                             <input class="form-control comment" placeholder="Comment">
                                         </td>
                                         <td>
-                                            <a class="btn btn-info invoice_update_btn" href="#">Update</a>
+                                            <div>
+                                                <a class="btn btn-info btn-sm invoice_update_btn" href="#">Update</a>
+                                            </div>
+                                            <div>
+                                                <a class="btn btn-primary btn-sm m-t-5" target="_blank" href="{{ route('service.invoice.makeInvoice', ['userId' => $invoice->user_id, 'dateFrom' => $invoice->start_date, 'dateTo' => $invoice->end_date]) }}">Refresh</a>
+                                            </div>
                                         </td>
                                         <td>
                                             <div class="checkbox checkbox-info text-center invoice_update_checkbox_con">
