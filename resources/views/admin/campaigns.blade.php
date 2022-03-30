@@ -84,6 +84,9 @@
             top: 9px;
             border-top: 2px solid #aaa;
         }
+        .campaign_group .item_list .list .item[data-pull="false"]{
+            color: #ce440d;
+        }
         .campaign_list .item .tool-icon{
             color: #333;
             opacity: 0;

@@ -216,7 +216,8 @@ class DashboardController extends Controller
                             'clicks' => $stats['visits'],
                             'revenue' => number_format($stats['cost'], 2),
                             'epc' => number_format($stats['cpv'], 2),
-                        ]
+                        ],
+                        'pull' => $campaign->pull
                     ];
                 }
                 $apiResponsesTotals[] = $stats;

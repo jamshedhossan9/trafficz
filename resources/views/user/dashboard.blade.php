@@ -415,11 +415,20 @@
                                 if(campaigns.hasOwnProperty(y)){
                                     var stats = campaigns[y].stats;
                                     var tags = [];
+                                    var pull = campaigns[y].pull;
                                     for(var item of campaigns[y].tags){
                                         tags.push(item.name);
                                     }
+                                    var revenue = _parseFloat(stats.revenue);
+                                    var showCampaign = true;
+                                    if(!pull){
+                                        showCampaign = false;
+                                    }
+                                    if(revenue > 0){
+                                        showCampaign = true;
+                                    }
                                     tbody += `
-                                        <tr class="main-row" data-id="`+campaigns[y].id+`">
+                                        <tr class="main-row `+(showCampaign ? '' : 'hidden')+`" data-id="`+campaigns[y].id+`">
                                             <td><span class="ti-plus campaign-hourly-stat-btn m-r-5" data-loaded="false"></span> `+campaigns[y].name+`</td>
                                             <td>`+stats.clicks+`</td>
                                             <td>$`+stats.revenue+`</td>
@@ -434,7 +443,7 @@
                             }
                             if(groupStats[x].credit){
                                 tfoot += `
-                                    <tr>
+                                    <tr class="credit-row">
                                         <th>Credit</th>
                                         <th>-</th>
                                         <th colspan="3">$`+groupStats[x].credit+`</th>
@@ -478,6 +487,7 @@
                             $('.dashboard-stats-area .total_pending_amount').text(globalNumberFormatter.USD.format(oldAmount + todayAmount));
                         }
                     }
+                    hideGroupsWithoutCampaign();
                 }
             }
             ajax({
@@ -708,6 +718,21 @@
                 el.closest('.panel').addClass('hidden');
             });
         });
+
+        function hideGroupsWithoutCampaign(){
+            var panels = $('.campaign-group-panel');
+            panels.each(function(){
+                var panel = $(this);
+                var visibleCampaign = panel.find('.stats-table>tbody>.main-row:not(.hidden)');
+                var creditRow = panel.find('.stats-table>tfoot>.credit-row');
+                if(visibleCampaign.length || creditRow.length){
+                    panel.removeClass('hidden');
+                }
+                else{
+                    panel.addClass('hidden');
+                }
+            });
+        }
     </script>
 @endpush
 

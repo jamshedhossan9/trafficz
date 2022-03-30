@@ -479,9 +479,9 @@ class CampaignService
         // $data->save();
 
         $time = date('H:i');
-        if($time == '00:30'){
+        if($time == '01:00'){
             $data = new MyLog();
-            $data->type = "daily 12:30am cron check foreign";
+            $data->type = "daily 01:00am cron check foreign";
             $data->data = [
                 'date' => date("Y-m-d H:i:s"),
                 'source' => 'foreign hit'
