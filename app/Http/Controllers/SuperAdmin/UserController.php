@@ -155,6 +155,7 @@ class UserController extends Controller
         $output->msg->text = 'Import process has been initialized';
         $output->msg->type = 'success';
         $output->msg->title = 'Successful';
+        $output->status = true;
 
         return response()->json($output);
     }

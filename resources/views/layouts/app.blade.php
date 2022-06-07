@@ -51,6 +51,9 @@
                     </a>
                     <ul class="dropdown-menu dropdown-user animated flipInY">
                         {{-- <li><a href="#"><i class="ti-settings"></i> Account Setting</a></li> --}}
+                        <li>
+                            <a class="import-yesterday-stats" href="{{ route('globalImportYesterdayCampaignData') }}" >Import Yesterday Stats</a>
+                        </li>
                         <li role="separator" class="divider"></li>
                         <li>
                             <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none hidden">
@@ -115,5 +118,26 @@
 </script>
 <script src="{{asset('js/custom.js')}}{{version()}}"></script>
 @stack('js')
+<script>
+    $('.import-yesterday-stats').click(function(e){
+        e.preventDefault();
+        var el = $(this);
+        var url = el.attr('href');
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "This will clear campaign stats for yesterday and will import fresh. Then it will re-adjust yesterday's invoice if there is any!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Import!',
+            cancelButtonText: 'No, cancel!',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                ajax({url: url});
+            }
+        });
+
+    });
+</script>
 </body>
 </html>

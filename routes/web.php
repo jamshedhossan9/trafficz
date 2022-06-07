@@ -74,7 +74,7 @@ Route::group(['middleware' => 'auth'], function(){
     Route::get('campaign-search-stats', [App\Http\Controllers\User\DashboardController::class, 'campaignService'])->name('public.campaingService');
     
     // Route::resource('profile', App\Http\Controllers\User\ProfileController::class);
-    
+    Route::get('global/campaign-group/import-yesterday-data', 'App\Http\Controllers\SuperAdmin\UserController@importYesterdayData')->name('globalImportYesterdayCampaignData');
     Route::get('/global-js', function(){
         return response(view('sections.global-js'), 200)
                       ->header('Content-Type', 'application/javascript');
