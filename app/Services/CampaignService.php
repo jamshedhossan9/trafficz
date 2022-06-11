@@ -21,6 +21,7 @@ use Illuminate\Bus\Batch;
 use Illuminate\Support\Facades\Bus;
 use Throwable;
 use Carbon\Carbon;
+use Exception;
 
 class CampaignService
 {
@@ -324,13 +325,7 @@ class CampaignService
         $dateTo = $date;
         $campaign = Campaign::with('trackerAuth.trackerUser.tracker')->find($campaignId);
         if(!empty($campaign)){
-            $report = $campaign->reportByDate($dateFrom)->first();
-            if(empty($report)){
-                $report = new CampaignGroupReport();
-                $report->campaign_group_id = $campaign->campaign_group_id ;
-                $report->campaign_id = $campaign->id;
-                $report->date = $dateFrom;
-            }
+            $identifier = $dateFrom.'_'.$campaign->campaign_group_id.'_'.$campaign->id;
 
             $tracker = $campaign->trackerAuth->trackerUser->tracker->slug;
             $auth = $campaign->trackerAuth->auth;
@@ -339,24 +334,39 @@ class CampaignService
             if(!$save){
                 return $stats;
             }
-            
-            $report->conversions = $stats['conversions'];
-            $report->cost = $stats['cost'];
-            $report->revenue = $stats['revenue'];
-            $report->profit = $stats['profit'];
-            $report->impressions = $stats['impressions'];
-            $report->visits = $stats['visits'];
-            $report->clicks = $stats['clicks'];
-            $report->epc = $stats['epc'];
-            $report->cpc = $stats['cpc'];
-            $report->epv = $stats['epv'];
-            $report->cpv = $stats['cpv'];
-            $report->roi = $stats['roi'];
-            $report->ctr = $stats['ctr'];
-            $report->ictr = $stats['ictr'];
-            $report->cr = $stats['cr'];
-
-            $report->save();
+            try {
+        
+                $report = new CampaignGroupReport();
+                $report->campaign_group_id = $campaign->campaign_group_id;
+                $report->campaign_id = $campaign->id;
+                $report->date = $dateFrom;
+                $report->identifier = $identifier;
+                $report->save();
+                
+            } catch (Exception $e) {
+                if ($e->getCode() == 23000) {
+                    $report = CampaignGroupReport::where('identifier', $identifier)->first();
+                }
+            }
+            if(!empty($report)){
+                $report->conversions = $stats['conversions'];
+                $report->cost = $stats['cost'];
+                $report->revenue = $stats['revenue'];
+                $report->profit = $stats['profit'];
+                $report->impressions = $stats['impressions'];
+                $report->visits = $stats['visits'];
+                $report->clicks = $stats['clicks'];
+                $report->epc = $stats['epc'];
+                $report->cpc = $stats['cpc'];
+                $report->epv = $stats['epv'];
+                $report->cpv = $stats['cpv'];
+                $report->roi = $stats['roi'];
+                $report->ctr = $stats['ctr'];
+                $report->ictr = $stats['ictr'];
+                $report->cr = $stats['cr'];
+                
+                $report->save();
+            }
             
         }
     }
@@ -370,13 +380,7 @@ class CampaignService
         $dateTo = $date;
         $campaign = Campaign::with('trackerAuth.trackerUser.tracker')->find($campaignId);
         if(!empty($campaign)){
-            $report = $campaign->reportByDate($dateFrom)->first();
-            if(empty($report)){
-                $report = new CampaignGroupReport();
-                $report->campaign_group_id = $campaign->campaign_group_id ;
-                $report->campaign_id = $campaign->id;
-                $report->date = $dateFrom;
-            }
+            $identifier = $dateFrom.'_'.$campaign->campaign_group_id.'_'.$campaign->id;
 
             $tracker = $campaign->trackerAuth->trackerUser->tracker->slug;
             $auth = $campaign->trackerAuth->auth;
@@ -385,27 +389,41 @@ class CampaignService
             if(!$save){
                 return $stats;
             }
-            
-            $report->conversions = $stats['conversions'];
-            $report->cost = $stats['cost'];
-            $report->revenue = $stats['revenue'];
-            $report->profit = $stats['profit'];
-            $report->impressions = $stats['impressions'];
-            $report->visits = $stats['visits'];
-            $report->clicks = $stats['clicks'];
-            $report->epc = $stats['epc'];
-            $report->cpc = $stats['cpc'];
-            $report->epv = $stats['epv'];
-            $report->cpv = $stats['cpv'];
-            $report->roi = $stats['roi'];
-            $report->ctr = $stats['ctr'];
-            $report->ictr = $stats['ictr'];
-            $report->cr = $stats['cr'];
-
-            if($stats['visits'] > 0){
+            try {
+        
+                $report = new CampaignGroupReport();
+                $report->campaign_group_id = $campaign->campaign_group_id;
+                $report->campaign_id = $campaign->id;
+                $report->date = $dateFrom;
+                $report->identifier = $identifier;
                 $report->save();
+                
+            } catch (Exception $e) {
+                if ($e->getCode() == 23000) {
+                    $report = CampaignGroupReport::where('identifier', $identifier)->first();
+                }
             }
-            
+            if(!empty($report)){
+                $report->conversions = $stats['conversions'];
+                $report->cost = $stats['cost'];
+                $report->revenue = $stats['revenue'];
+                $report->profit = $stats['profit'];
+                $report->impressions = $stats['impressions'];
+                $report->visits = $stats['visits'];
+                $report->clicks = $stats['clicks'];
+                $report->epc = $stats['epc'];
+                $report->cpc = $stats['cpc'];
+                $report->epv = $stats['epv'];
+                $report->cpv = $stats['cpv'];
+                $report->roi = $stats['roi'];
+                $report->ctr = $stats['ctr'];
+                $report->ictr = $stats['ictr'];
+                $report->cr = $stats['cr'];
+
+                if($stats['visits'] > 0){
+                    $report->save();
+                }
+            }
         }
     }
 
@@ -417,10 +435,7 @@ class CampaignService
         $dateFrom = $date;
         $campaign = Campaign::with('trackerAuth.trackerUser.tracker')->find($campaignId);
         if(!empty($campaign) && $campaign->pull){
-            $report = $campaign->reportByDate($dateFrom)->first();
-            if(empty($report)){
-                $pull = true;
-            }
+            $pull = true;
         }
         if($pull){
             sleep(40);

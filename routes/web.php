@@ -54,6 +54,9 @@ Route::group(['middleware' => 'auth'], function(){
             Route::post('campaign-group/campaign/{action}/{id}', 'CampaignController@campaignTogglePlay')->name('campaignTogglePlay')->where('action', 'play|pause');
             Route::get('invoices/user/{id}', 'InvoiceController@byUser')->name('invoicesByUser');
             Route::post('invoices/bulk-update', 'InvoiceController@bulkUpdate')->name('invoiceBulkUpdate');
+
+
+            Route::get('test', 'TestController@unniqueTest')->name('test');
         });   
         Route::group(['namespace' => 'App\Http\Controllers\User'], function(){
             Route::get('dashboard/{userId}', 'DashboardController@index')->name('userDashboard');
