@@ -203,26 +203,32 @@ class CampaignService
     public function generateInvoices()
     {
         sleep(10);
-        $days = array('sunday', 'monday', 'tuesday', 'wednesday','thursday','friday', 'saturday');
-		$currentDate = date('Y-m-d');
-		$dayNo = date('w', strtotime($currentDate));
-		$dayWeek = $days[$dayNo];
-		$dateFrom = null;
-		$dateTo = null;
-		if($dayWeek == 'monday'){ // thursday - sunday //monday
-			$dateFrom = date('Y-m-d', strtotime('-4 days', strtotime($currentDate)));
-			$dateTo = date('Y-m-d', strtotime('-1 days', strtotime($currentDate)));
-		}
-		else if($dayWeek == 'thursday'){ // monday - wednesday
-			$dateFrom = date('Y-m-d', strtotime('-3 days', strtotime($currentDate)));
-			$dateTo = date('Y-m-d', strtotime('-1 days', strtotime($currentDate)));
-		}
-		else{
-            $this->updateStatsPullingLock(false);
-			exit();
-		}
+        try{
+            $days = array('sunday', 'monday', 'tuesday', 'wednesday','thursday','friday', 'saturday');
+            $currentDate = date('Y-m-d');
+            $dayNo = date('w', strtotime($currentDate));
+            $dayWeek = $days[$dayNo];
+            $dateFrom = null;
+            $dateTo = null;
+            if($dayWeek == 'monday'){ // thursday - sunday //monday
+                $dateFrom = date('Y-m-d', strtotime('-4 days', strtotime($currentDate)));
+                $dateTo = date('Y-m-d', strtotime('-1 days', strtotime($currentDate)));
+            }
+            else if($dayWeek == 'thursday'){ // monday - wednesday
+                $dateFrom = date('Y-m-d', strtotime('-3 days', strtotime($currentDate)));
+                $dateTo = date('Y-m-d', strtotime('-1 days', strtotime($currentDate)));
+            }
+            else{
+                $this->updateStatsPullingLock(false);
+                exit();
+            }
 
-        $this->makeInvoices($dateFrom, $dateTo);
+            $this->makeInvoices($dateFrom, $dateTo);
+            $this->updateStatsPullingLock(false);
+        }
+        catch(Exception $e){
+            $this->updateStatsPullingLock(false);
+        }
     }
 
     public function updateStatsPullingLock($set = true){
@@ -320,10 +326,9 @@ class CampaignService
                     Credit::whereIn('id', $allCreditIds)->update(['used' => true]);
                 }
             }
-            $this->updateStatsPullingLock(false);
         }
         catch(Exception $e){
-            $this->updateStatsPullingLock(false);
+            
         }
     }
 
