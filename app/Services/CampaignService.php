@@ -202,6 +202,7 @@ class CampaignService
 
     public function generateInvoices()
     {
+        sleep(10);
         $days = array('sunday', 'monday', 'tuesday', 'wednesday','thursday','friday', 'saturday');
 		$currentDate = date('Y-m-d');
 		$dayNo = date('w', strtotime($currentDate));
@@ -217,10 +218,36 @@ class CampaignService
 			$dateTo = date('Y-m-d', strtotime('-1 days', strtotime($currentDate)));
 		}
 		else{
+            $this->updateStatsPullingLock(false);
 			exit();
 		}
 
         $this->makeInvoices($dateFrom, $dateTo);
+    }
+
+    public function updateStatsPullingLock($set = true){
+        $output = false;
+        $user = User::find(1);
+        if(!empty($user)){
+            if($set){
+                if($user->stats_pull_running){
+                    $output = false;
+                }
+                else{
+                    $user->stats_pull_running = true;
+                    $user->save();
+                    $output = true;
+                }
+            }
+            else{
+                if($user->stats_pull_running){
+                    $user->stats_pull_running = false;
+                    $user->save();
+                }
+                $output = true;
+            }
+        }
+        return $output;
     }
 
     public function makeInvoices($dateFrom, $dateTo)
@@ -238,59 +265,65 @@ class CampaignService
 
     public function makeInvoice($userId, $dateFrom, $dateTo)
     {
-        $splitByTrackers = [];
-        $user = User::find($userId);
-        $dateFrom = date('Y-m-d', strtotime($dateFrom));
-        $dateTo = date('Y-m-d', strtotime($dateTo));
-        if(!empty($user)){
-            $invoiceData = ['amount' => 0, 'credit' => 0];
-            $campaignGroupUsers = CampaignGroupUser::with(['campaignGroup'])->where('user_id', $user->id)->get();
-            $allCreditIds = [];
-            if(!empty($campaignGroupUsers)){
-                foreach($campaignGroupUsers as $campaignGroupUser){
-                    $campaigns = $campaignGroupUser->campaignGroup->campaigns()->with('trackerAuth')->get();
-                    $credits = $campaignGroupUser->campaignGroup->credits()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
-                    if(!empty($credits)){
-                        foreach($credits as $credit){
-                            $invoiceData['credit'] += $credit->amount;
-                            $allCreditIds[] = $credit->id;
+        try{
+            $splitByTrackers = [];
+            $user = User::find($userId);
+            $dateFrom = date('Y-m-d', strtotime($dateFrom));
+            $dateTo = date('Y-m-d', strtotime($dateTo));
+            if(!empty($user)){
+                $invoiceData = ['amount' => 0, 'credit' => 0];
+                $campaignGroupUsers = CampaignGroupUser::with(['campaignGroup'])->where('user_id', $user->id)->get();
+                $allCreditIds = [];
+                if(!empty($campaignGroupUsers)){
+                    foreach($campaignGroupUsers as $campaignGroupUser){
+                        $campaigns = $campaignGroupUser->campaignGroup->campaigns()->with('trackerAuth')->get();
+                        $credits = $campaignGroupUser->campaignGroup->credits()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
+                        if(!empty($credits)){
+                            foreach($credits as $credit){
+                                $invoiceData['credit'] += $credit->amount;
+                                $allCreditIds[] = $credit->id;
+                            }
                         }
-                    }
-                    if(!empty($campaigns)){
-                        foreach($campaigns as $campaign){
-                            $reports = $campaign->reports()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
-                            if(!empty($reports)){
-                                if(empty($splitByTrackers[$campaign->tracker_auth_id])){
-                                    $splitByTrackers[$campaign->tracker_auth_id] = [
-                                        'name' => $campaign->trackerAuth->name,
-                                        'amount' => 0,
-                                    ];
-                                }
-                                foreach($reports as $report){
-                                    $invoiceData['amount'] += $report->cost;
-                                    $splitByTrackers[$campaign->tracker_auth_id]['amount'] += $report->cost;
+                        if(!empty($campaigns)){
+                            foreach($campaigns as $campaign){
+                                $reports = $campaign->reports()->where('date', '>=', $dateFrom)->where('date', '<=', $dateTo)->get();
+                                if(!empty($reports)){
+                                    if(empty($splitByTrackers[$campaign->tracker_auth_id])){
+                                        $splitByTrackers[$campaign->tracker_auth_id] = [
+                                            'name' => $campaign->trackerAuth->name,
+                                            'amount' => 0,
+                                        ];
+                                    }
+                                    foreach($reports as $report){
+                                        $invoiceData['amount'] += $report->cost;
+                                        $splitByTrackers[$campaign->tracker_auth_id]['amount'] += $report->cost;
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                $invoice = Invoice::where('user_id', $user->id)->where('end_date', $dateTo)->first();
+                if(empty($invoice)){
+                    $invoice = new Invoice();
+                    $invoice->user_id = $user->id;
+                }
+                $invoice->start_date = $dateFrom;
+                $invoice->end_date = $dateTo;
+                $invoice->description = 'Traffic revenue';
+                $invoice->amount = $invoiceData['amount'];
+                $invoice->credit = $invoiceData['credit'];
+                $invoice->total = $invoiceData['credit'] + $invoiceData['amount'];
+                $invoice->splits = $splitByTrackers;
+                $invoice->save();
+                if(!empty($allCreditIds)){
+                    Credit::whereIn('id', $allCreditIds)->update(['used' => true]);
+                }
             }
-            $invoice = Invoice::where('user_id', $user->id)->where('end_date', $dateTo)->first();
-            if(empty($invoice)){
-                $invoice = new Invoice();
-                $invoice->user_id = $user->id;
-            }
-            $invoice->start_date = $dateFrom;
-            $invoice->end_date = $dateTo;
-            $invoice->description = 'Traffic revenue';
-            $invoice->amount = $invoiceData['amount'];
-            $invoice->credit = $invoiceData['credit'];
-            $invoice->total = $invoiceData['credit'] + $invoiceData['amount'];
-            $invoice->splits = $splitByTrackers;
-            $invoice->save();
-            if(!empty($allCreditIds)){
-                Credit::whereIn('id', $allCreditIds)->update(['used' => true]);
-            }
+            $this->updateStatsPullingLock(false);
+        }
+        catch(Exception $e){
+            $this->updateStatsPullingLock(false);
         }
     }
 
@@ -305,12 +338,13 @@ class CampaignService
         $campaignGroupStatJobs = [];
         $campaigns = Campaign::all();
         if(!empty($campaigns)){
-            for($i = 0; $i < 5; $i++){
+            for($i = 0; $i < 3; $i++){
                 foreach($campaigns as $campaign){
                     // $this->storeCampaignStats($campaign->id, $date);
                     $campaignGroupStatJobs[] = new CampaignStatJob($campaign->id, $date);
                 }
             }
+            $campaignGroupStatJobs[] = new GenerateInvoiceJob();
             $this->dipatchBatchJobs($campaignGroupStatJobs);
         }
         
@@ -373,73 +407,81 @@ class CampaignService
 
     public function storeCampaignStatsInstant($campaignId, $date, $save = true)
     {
-        
-        $campaignId = intval($campaignId);
-        $date = date('Y-m-d', strtotime($date));
-        $dateFrom = $date;
-        $dateTo = $date;
-        $campaign = Campaign::with('trackerAuth.trackerUser.tracker')->find($campaignId);
-        if(!empty($campaign)){
-            $identifier = $dateFrom.'_'.$campaign->campaign_group_id.'_'.$campaign->id;
+        try{
+            $campaignId = intval($campaignId);
+            $date = date('Y-m-d', strtotime($date));
+            $dateFrom = $date;
+            $dateTo = $date;
+            $campaign = Campaign::with('trackerAuth.trackerUser.tracker')->find($campaignId);
+            if(!empty($campaign)){
+                $identifier = $dateFrom.'_'.$campaign->campaign_group_id.'_'.$campaign->id;
 
-            $tracker = $campaign->trackerAuth->trackerUser->tracker->slug;
-            $auth = $campaign->trackerAuth->auth;
-            
-            $stats = getTrackerCampaignStat($tracker, $auth, $dateFrom, $dateTo, $campaign->camp_id);
-            if(!$save){
-                return $stats;
-            }
-            try {
-        
-                $report = new CampaignGroupReport();
-                $report->campaign_group_id = $campaign->campaign_group_id;
-                $report->campaign_id = $campaign->id;
-                $report->date = $dateFrom;
-                $report->identifier = $identifier;
-                $report->save();
+                $tracker = $campaign->trackerAuth->trackerUser->tracker->slug;
+                $auth = $campaign->trackerAuth->auth;
                 
-            } catch (Exception $e) {
-                if ($e->getCode() == 23000) {
-                    $report = CampaignGroupReport::where('identifier', $identifier)->first();
+                $stats = getTrackerCampaignStat($tracker, $auth, $dateFrom, $dateTo, $campaign->camp_id);
+                if(!$save){
+                    return $stats;
                 }
-            }
-            if(!empty($report)){
-                $report->conversions = $stats['conversions'];
-                $report->cost = $stats['cost'];
-                $report->revenue = $stats['revenue'];
-                $report->profit = $stats['profit'];
-                $report->impressions = $stats['impressions'];
-                $report->visits = $stats['visits'];
-                $report->clicks = $stats['clicks'];
-                $report->epc = $stats['epc'];
-                $report->cpc = $stats['cpc'];
-                $report->epv = $stats['epv'];
-                $report->cpv = $stats['cpv'];
-                $report->roi = $stats['roi'];
-                $report->ctr = $stats['ctr'];
-                $report->ictr = $stats['ictr'];
-                $report->cr = $stats['cr'];
-
-                if($stats['visits'] > 0){
+                try {
+            
+                    $report = new CampaignGroupReport();
+                    $report->campaign_group_id = $campaign->campaign_group_id;
+                    $report->campaign_id = $campaign->id;
+                    $report->date = $dateFrom;
+                    $report->identifier = $identifier;
                     $report->save();
+                    
+                } catch (Exception $e) {
+                    if ($e->getCode() == 23000) {
+                        $report = CampaignGroupReport::where('identifier', $identifier)->first();
+                    }
+                }
+                if(!empty($report)){
+                    $report->conversions = $stats['conversions'];
+                    $report->cost = $stats['cost'];
+                    $report->revenue = $stats['revenue'];
+                    $report->profit = $stats['profit'];
+                    $report->impressions = $stats['impressions'];
+                    $report->visits = $stats['visits'];
+                    $report->clicks = $stats['clicks'];
+                    $report->epc = $stats['epc'];
+                    $report->cpc = $stats['cpc'];
+                    $report->epv = $stats['epv'];
+                    $report->cpv = $stats['cpv'];
+                    $report->roi = $stats['roi'];
+                    $report->ctr = $stats['ctr'];
+                    $report->ictr = $stats['ictr'];
+                    $report->cr = $stats['cr'];
+
+                    if($stats['visits'] > 0){
+                        $report->save();
+                    }
                 }
             }
+        }
+        catch(Exception $e){
+
         }
     }
 
     public function storeCampaignStats($campaignId, $date, $save = true)
     {
-        $pull = false;
-        $campaignId = intval($campaignId);
-        $date = date('Y-m-d', strtotime($date));
-        $dateFrom = $date;
-        $campaign = Campaign::with('trackerAuth.trackerUser.tracker')->find($campaignId);
-        if(!empty($campaign) && $campaign->pull){
-            $pull = true;
+        try{
+            $pull = false;
+            $campaignId = intval($campaignId);
+            $date = date('Y-m-d', strtotime($date));
+            $dateFrom = $date;
+            $campaign = Campaign::with('trackerAuth.trackerUser.tracker')->find($campaignId);
+            if(!empty($campaign) && $campaign->pull){
+                $pull = true;
+            }
+            if($pull){
+                sleep(10);
+                $this->storeCampaignStatsInstant($campaignId, $date, $save);
+            }
         }
-        if($pull){
-            sleep(40);
-            $this->storeCampaignStatsInstant($campaignId, $date, $save);
+        catch(Exception $e){
         }
     }
 
@@ -451,7 +493,11 @@ class CampaignService
 
     public function generateYesterdayStatsAndInvoiceRun()
     {
-        $this->generateYesterdayStatsAndInvoice();
+        usleep(rand(0, 3000000));
+        $lock = $this->updateStatsPullingLock(true);
+        if($lock){
+            $this->generateYesterdayStatsAndInvoice();
+        }
         // GenerateYesterdayStatsAndInvoiceJob::dispatch();
     }
 
@@ -527,17 +573,18 @@ class CampaignService
      */
     public function dipatchBatchJobs($jobs = []){
         if(!empty($jobs)){
-            $batch = Bus::batch($jobs)->then( function (Batch $bat){
-                // All jobs completed successfully...
-                GenerateInvoiceJob::dispatch();
-            })->catch(function (Batch $batch, Throwable $e) {
-                // First batch job failure detected...
-                \Log::info("Batch failed: ". json_encode($batch));
-            })->finally(function (Batch $batch) {
-                // The batch has finished executing...
-            })->name('Campaign Group Stat')->dispatch();
+            Bus::chain($jobs)->dispatch();
+            // $batch = Bus::batch($jobs)->then( function (Batch $bat){
+            //     // All jobs completed successfully...
+            //     GenerateInvoiceJob::dispatch();
+            // })->catch(function (Batch $batch, Throwable $e) {
+            //     // First batch job failure detected...
+            //     \Log::info("Batch failed: ". json_encode($batch));
+            // })->finally(function (Batch $batch) {
+            //     // The batch has finished executing...
+            // })->name('Campaign Group Stat')->dispatch();
 
-            return $batch->id;
+            // return $batch->id;
         }
 
         return;

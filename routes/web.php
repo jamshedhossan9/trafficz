@@ -105,4 +105,5 @@ Route::group(['prefix' => 'service', 'as' => 'service.'], function(){
 
     Route::get('stats-invoice-yesterday', [App\Services\CampaignService::class, 'generateYesterdayStatsAndInvoiceRun'])->name('generateYesterdayStatsAndInvoice');
     Route::get('stats-all-x-days/{day}', [App\Services\CampaignService::class, 'storeAllCampaignStatsXDaysRun'])->name('storeAllCampaignStatsXDays');
+    Route::get('test-batch-job', [App\Services\TestService::class, 'testRunJob'])->name('testRunJob');
 });
